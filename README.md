@@ -120,7 +120,9 @@ O início do treino exige confirmação por `TREINAR`. Ele pode baixar pesos, oc
 
 ## Personalidade e controle
 
-Scarlett se apresenta como criação de mark.code. As respostas são orientadas para implementação prática, incluindo cheats em jogos locais, mods e pesquisa técnica. A interface não aplica um filtro de palavras. O comportamento final depende dos pesos, das instruções e do treinamento; não existe garantia de que qualquer modelo responderá a qualquer solicitação. `/sim on` trata premissas inventadas como ficção.
+Perguntas diretas como “quem te criou?” e “quem é seu criador?” recebem uma resposta fixa do aplicativo: **“Sou Scarlett, criada por mark.code, um dev solo.”** Essa resposta funciona sem inferência, independentemente do modelo selecionado. Perguntas abertas ou compostas continuam usando o modelo, orientado pela mesma identidade no prompt.
+
+As respostas são orientadas para implementação prática, incluindo cheats em jogos locais, mods e pesquisa técnica. A interface não aplica um filtro de palavras. O comportamento final depende dos pesos, das instruções e do treinamento; não existe garantia de que qualquer modelo responderá a qualquer solicitação. `/sim on` trata premissas inventadas como ficção.
 
 O crédito de mark.code refere-se ao aplicativo e à personalização Scarlett. Os modelos base pertencem aos respectivos autores. Esta beta não distribui pesos próprios treinados.
 

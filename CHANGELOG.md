@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.1.0-beta.2 — Correção de identidade
+
+- Resposta fixa de autoria para perguntas diretas sobre Scarlett, independente do modelo.
+- Crédito: mark.code, um dev solo.
+- Perguntas sobre outros projetos e solicitações compostas continuam no modelo.
+
 ## 1.1.0-beta.1 — Scarlett 1.1
 
 - Instalação opcional de `scarlett:turbo` com Qwen2.5 1.5B e `scarlett:balanced` com 3B.

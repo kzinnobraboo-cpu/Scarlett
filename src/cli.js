@@ -6,6 +6,7 @@ import { TerminalUI, COMMANDS } from './ui.js';
 import { ensureBackend, setupModel } from './backend.js';
 import { PROFILES, profileFor, contextMessages } from './profiles.js';
 import { exportExamples, trainingTask, runTraining } from './training.js';
+import { identityReply } from './identity.js';
 
 const demo = process.argv.includes('--demo');
 const api = new Ollama();
@@ -152,6 +153,14 @@ async function submit(raw) {
       } else ui.notice = 'Execução cancelada.';
     } else if (line.startsWith('/')) await command(line);
     else {
+      const identity = identityReply(line);
+      if (identity) {
+        ui.add('Você', line);
+        ui.add('Scarlett', identity);
+        messages.push({ role: 'user', content: line }, { role: 'assistant', content: identity });
+        ui.notice = 'Identidade da Scarlett · resposta do aplicativo, sem inferência.';
+        return;
+      }
       if (!connected) await connect();
       if (!installed.length) throw new Error('Ainda não há modelo instalado. Use /setup para baixar e preparar Scarlett.');
       ui.add('Você', line);

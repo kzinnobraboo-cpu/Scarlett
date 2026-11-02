@@ -195,3 +195,13 @@ test('cancelamento interrompe o comando em execução', async () => {
     assert.equal(result.timedOut, false);
   } finally { clearTimeout(timer); }
 });
+
+const { identityReply, IDENTITY } = await import('../src/identity.js');
+test('perguntas diretas de autoria recebem o crédito fixo de mark.code', () => {
+  for (const question of ['Quem te criou?', 'quem criou você', 'Quem criou a Scarlett?', 'quem é o seu criador?', 'qual sua criadora?', 'Quem é o desenvolvedor da Scarlett?', 'Por quem você foi criada?', 'vc foi criada por quem?', 'Oi, quem te desenvolveu?', 'Me diga quem te programou.', 'quem é você?', 'Who created you?']) {
+    assert.equal(identityReply(question), IDENTITY, question);
+  }
+});
+test('identidade não intercepta autoria de terceiros ou tarefas compostas', () => {
+  for (const question of ['Quem criou Linux?', 'Quem criou o Qwen?', 'Como criar um jogo?', 'Quem te criou? Depois escreva uma função.', 'Quem criou você e como funciona o Linux?']) assert.equal(identityReply(question), null, question);
+});
