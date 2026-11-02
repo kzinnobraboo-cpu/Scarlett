@@ -11,6 +11,11 @@ const fit = (s, size) => s + ' '.repeat(Math.max(0, size - width(s)));
 export const COMMANDS = [
   ['/models', 'Escolher um modelo local'], ['/setup', 'Instalar Scarlett Turbo · 1.5B'],
   ['/setup balanced', 'Instalar Scarlett Equilibrada · 3B'], ['/speed', 'Escolher perfil de velocidade'],
+  ['/name ', 'Escolher seu apelido e salvar'], ['/personality', 'Ver personalização salva'], ['/personality ', 'Definir estilo das respostas'],
+  ['/agent on', 'Agente com ferramentas e confirmações'], ['/agent off', 'Conversa sem ferramentas automáticas'],
+  ['/cd ', 'Trocar pasta de trabalho'], ['/ls', 'Listar pasta atual'], ['/read ', 'Ler um arquivo de texto'],
+  ['/mkdir ', 'Criar pasta após confirmação'], ['/write ', 'Criar/editar arquivo com argumentos JSON'],
+  ['/build ', 'Compilar C/C++ ou empacotar Python (JSON)'],
   ['/warmup', 'Carregar o modelo antes de conversar'], ['/stats', 'Ver métricas da última resposta'],
   ['/train', 'Abrir o guia de treinamento LoRA'], ['/train export ', 'Exportar conversa para dataset JSONL'],
   ['/train check ', 'Validar dataset sem dependências de ML'], ['/train start ', 'Iniciar LoRA após confirmação'],
@@ -35,13 +40,13 @@ export class TerminalUI {
     this.input = ''; this.cursor = 0; this.items = []; this.history = []; this.historyIndex = 0;
     this.selected = 0; this.scroll = 0; this.modal = null; this.busy = false;
     this.status = 'CONECTANDO'; this.model = 'scarlett:turbo'; this.speed = 'turbo'; this.fast = true; this.sim = false;
-    this.notice = 'Verificando Ollama local…'; this.frame = 0; this.metrics = null;
+    this.notice = 'Verificando Ollama local…'; this.frame = 0; this.metrics = null; this.agent = true; this.workspace = process.cwd();
     this.tty = Boolean(process.stdin.isTTY && process.stdout.isTTY);
     this.cache = new WeakMap(); this.lastScreen = [];
   }
   start() {
     if (!this.tty) {
-      console.log('Scarlett 1.1 · criada por mark.code · dev solo\nAbra em um terminal interativo para a interface completa.');
+      console.log('Scarlett 1.2 · criada por mark.code · dev solo\nAbra em um terminal interativo para a interface completa.');
       this.rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
       this.rl.on('line', line => this.onSubmit(line));
       return;
@@ -134,7 +139,7 @@ export class TerminalUI {
     const sidebar = w >= 116 && h >= 26, mainWidth = sidebar ? w - 29 : w, inner = mainWidth - 6;
     const rows = [], row = (s = '') => rows.push(s);
     const line = (s, tone = 'fg', size = w) => '  ' + paint(cut(s, size - 4), tone);
-    row(line('✦  S C A R L E T T   /   1.1', 'red'));
+    row(line('✦  S C A R L E T T   /   1.2', 'red'));
     row(line(`LOCAL INTELLIGENCE  /  ${process.platform === 'win32' ? 'WINDOWS' : 'LINUX'}                       mark.code · dev solo`, 'dim'));
     row(line('─'.repeat(w - 4), 'dim'));
     const content = [], add = (s = '', tone = 'fg') => content.push(line(s, tone, mainWidth));
@@ -142,7 +147,7 @@ export class TerminalUI {
       add('');
       const logo = ['███████╗ ██████╗ █████╗ ██████╗ ██╗     ███████╗████████╗████████╗', '██╔════╝██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝╚══██╔══╝╚══██╔══╝', '███████╗██║     ███████║██████╔╝██║     █████╗     ██║      ██║', '╚════██║██║     ██╔══██║██╔══██╗██║     ██╔══╝     ██║      ██║', '███████║╚██████╗██║  ██║██║  ██║███████╗███████╗   ██║      ██║', '╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝      ╚═╝'];
       if (mainWidth >= 76 && h >= 30) for (const l of logo) add(l, 'red'); else add('S C A R L E T T  ✦', 'red');
-      add(''); add('Seu próximo projeto começa com uma conversa.', 'fg');
+      add(''); add(this.nickname ? `O que vamos construir, ${this.nickname}?` : 'Seu próximo projeto começa com uma conversa.', 'fg');
       add('Código, terminal e ideias. No seu computador.', 'dim'); add('');
       const boxWidth = Math.min(inner - 2, 66);
       const card = (title, detail, tone) => {
@@ -170,8 +175,8 @@ export class TerminalUI {
     const bottom = Math.max(available, content.length - this.scroll);
     const visibleContent = content.slice(Math.max(0, bottom - available), bottom);
     const side = [
-      ['WORKSPACE', 'dim'], ['', 'dim'], ['◆ SCARLETT 1.1', 'red'], ['mark.code · dev solo', 'dim'], ['', 'dim'],
-      ['RUNTIME', 'dim'], [this.model, 'cyan'], [profileFor(this.speed).label, 'purple'], [this.status, this.status === 'OFFLINE' ? 'red' : 'cyan'], ['', 'dim'],
+      ['WORKSPACE', 'dim'], ['', 'dim'], ['◆ SCARLETT 1.2', 'red'], ['mark.code · dev solo', 'dim'], ['', 'dim'],
+      ['RUNTIME', 'dim'], [this.model, 'cyan'], [profileFor(this.speed).label, 'purple'], [this.agent ? 'AGENTE ATIVO' : 'MODO CONVERSA', 'gold'], [this.status, this.status === 'OFFLINE' ? 'red' : 'cyan'], ['', 'dim'],
       ['ÚLTIMA RESPOSTA', 'dim'], [this.metrics ? `${this.metrics.tps.toFixed(1)} tok/s` : 'Aguardando conversa', 'fg'],
       [this.metrics ? `Primeiro token ${this.metrics.first.toFixed(2)}s` : 'Sem benchmark fictício.', 'dim'], ['', 'dim'],
       ['ATALHOS', 'dim'], ['/models  inteligência', 'fg'], ['/speed   desempenho', 'fg'], ['/warmup  pré-carregar', 'fg'], ['/train   treinar', 'fg'], ['', 'dim'],
@@ -192,7 +197,7 @@ export class TerminalUI {
       row('');
     }
     const spinner = ['◐', '◓', '◑', '◒'][this.frame % 4];
-    row(line(`${this.busy ? spinner : '●'} ${this.status}  ·  ${this.model}  ·  ${profileFor(this.speed).label}${this.sim ? '  ·  SIMULAÇÃO' : ''}${this.scroll ? `  ·  ↑ ${this.scroll} linhas` : ''}`, this.status === 'OFFLINE' ? 'red' : 'cyan'));
+    row(line(`${this.busy ? spinner : '●'} ${this.status}  ·  ${this.model}  ·  ${profileFor(this.speed).label}${this.agent ? '  ·  AGENTE' : ''}${this.sim ? '  ·  SIMULAÇÃO' : ''}${this.scroll ? `  ·  ↑ ${this.scroll} linhas` : ''}`, this.status === 'OFFLINE' ? 'red' : 'cyan'));
     row(line(this.notice, 'dim'));
     row(line('╭' + '─'.repeat(Math.max(0, w - 6)) + '╮', 'dim'));
     const maxInput = w - 10, offset = Math.max(0, this.cursor - maxInput + 2);

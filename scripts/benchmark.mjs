@@ -27,7 +27,7 @@ for (let i = 0; i < runs; i++) {
   results.push({ first_token_ms: first - start, total_ms: performance.now() - start, tokens: stats.eval_count || 0, tokens_per_second: stats.eval_duration > 0 ? stats.eval_count / (stats.eval_duration / 1e9) : null });
   console.error(`Repetição ${i + 1}/${runs} concluída.`);
 }
-const report = { version: '1.1', measured_at: new Date().toISOString(), model, profile, warm: true, platform: process.platform, arch: process.arch, node: process.version, results };
+const report = { version: '1.2', measured_at: new Date().toISOString(), model, profile, warm: true, platform: process.platform, arch: process.arch, node: process.version, results };
 const json = JSON.stringify(report, null, 2);
 console.log(json);
 const output = get('--output');

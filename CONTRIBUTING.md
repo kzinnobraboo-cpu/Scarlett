@@ -16,6 +16,9 @@ No Linux, `python3` pode ser necessário. Bibliotecas de ML não são exigidas p
 | `src/cli.js` | Comandos e fluxo de conversa |
 | `src/ui.js` | Layout, teclado, cache e atualização diferencial |
 | `src/core.js` | Cliente Ollama, personalidade e comandos de sistema |
+| `src/agent.js` | Ciclo de ferramentas e pausas para confirmação |
+| `src/pc-tools.js` | Arquivos, diretórios, comandos e builds |
+| `src/preferences.js` | Apelido e estilo persistentes |
 | `src/profiles.js` | Perfis e orçamento de histórico |
 | `src/backend.js` | Inicialização do Ollama e preparação de modelos |
 | `src/training.js` | Exportação e processo Python sem shell |

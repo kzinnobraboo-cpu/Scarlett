@@ -1,31 +1,25 @@
-# Scarlett 1.1 Beta
+# Scarlett 1.2 Beta
 
 Criada por **mark.code, um dev solo**.
 
-Correção beta.2: perguntas diretas sobre identidade e criador agora recebem uma resposta fixa do aplicativo, sem depender do modelo ou do Ollama.
+## Agente com ferramentas reais
 
-## Uma nova experiência no terminal
+Scarlett pode listar e ler arquivos, propor pastas, criar/editar texto, executar comandos e compilar programas. O modelo recebe os resultados e pode continuar a tarefa. Alterações, comandos e builds aguardam confirmação por `EXECUTAR`; Esc interrompe. O agente vem ativo e exige um modelo com suporte a ferramentas nativas do Ollama.
 
-Painel lateral em janelas grandes, cartões de acesso rápido, blocos de código destacados, menus por setas e entrada fixa. A renderização atualiza somente linhas alteradas e reutiliza mensagens já formatadas.
+Atalhos `/cd`, `/ls`, `/read`, `/mkdir`, `/write` e `/build` funcionam sem inferência. Acesso usa as permissões do usuário, inclusive caminhos fora do projeto; não concede administrador.
 
-## Mais opções de desempenho
+## Personalização persistente
 
-- `/setup` instala Scarlett Turbo com Qwen2.5 1.5B.
-- `/setup balanced` instala a alternativa 3B.
-- `/speed` seleciona contexto e limite de resposta.
-- `/warmup` pré-carrega o modelo; `/stats` mostra métricas reais.
-- `npm run bench` mede gerações após warmup de forma reproduzível.
+Diga “me chame de chefia” ou use `/name Chefia`. Scarlett salva o apelido e o utiliza nas próximas conversas. `/personality` mostra ou altera o estilo; `/name reset` e `/personality reset` restauram as opções. Preferências são guardadas fora do repositório por padrão. O criador continua sendo mark.code.
 
-A instalação nova preserva os modelos anteriores. Modelo menor e contexto reduzido envolvem compromissos de qualidade; respostas instantâneas não são garantidas.
+## Builds e treinamento
 
-## Treinamento integrado
+Builds diretos suportam C/C++ com GCC/G++ e Python com PyInstaller instalado. `.exe` de C/C++ no Linux exige MinGW; `.exe` Python exige build no Windows. Os perfis de desempenho, `/warmup` e Training Studio (`/train`) continuam disponíveis. Preferências não substituem treinamento de pesos.
 
-Exporte a conversa com `/train export`, valide com `/train check` e prepare LoRA com `/train start`. O treino só começa após confirmação por `TREINAR`, exige dependências Python separadas e pode baixar pesos e consumir muitos recursos. A beta não inclui pesos próprios treinados.
+## GitHub público
 
-## Apresentação do projeto
+`npm run publish:beta -- --public` publica branch e tag, cria/atualiza a prerelease e cria um repositório público ou torna público o origin existente. README, capa, prévia e guias acompanham o código. O script exige GitHub CLI autenticado e rede; não força o histórico Git.
 
-README com capa e prévia SVG da interface, guias de treinamento, desempenho e solução de problemas, histórico de versões e instruções para contribuir.
+## Validação e limites
 
-## Validação e limitações
-
-21 testes JavaScript e 6 testes Python passaram no ambiente Linux. O cliente de inferência e a inicialização do backend são testados com simulações; inferência real, importação de pesos e treino completo ainda não foram validados neste ambiente. CI está configurado para Linux e Windows, mas resultado remoto ainda não foi observado. O comportamento das respostas depende do modelo, do prompt e dos dados; não há garantia de respostas irrestritas.
+35 testes JavaScript e 6 testes Python passaram no Linux. Um programa C foi criado, compilado com GCC e executado pelo mecanismo de ferramentas. Planejamento com um modelo real, compilação para Windows e treinamento completo ainda não foram validados neste ambiente. O agente foi testado com respostas de modelo simuladas. Desempenho depende do hardware e dos pesos; não há garantia de ações instantâneas ou respostas irrestritas.

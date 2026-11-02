@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Ollama, IDENTITY, systemPrompt, validateSession, runCommand } from './core.js';
 import { TerminalUI, COMMANDS } from './ui.js';
@@ -7,15 +7,23 @@ import { ensureBackend, setupModel } from './backend.js';
 import { PROFILES, profileFor, contextMessages } from './profiles.js';
 import { exportExamples, trainingTask, runTraining } from './training.js';
 import { identityReply } from './identity.js';
+import { PcTools, toolDisplay } from './pc-tools.js';
+import { agentTurn, agentInstructions } from './agent.js';
+import { PreferenceStore, DEFAULT_PREFERENCES, nicknameRequest, personalizationPrompt, addressedReply } from './preferences.js';
 
 const demo = process.argv.includes('--demo');
 const api = new Ollama();
 let model = process.env.SCARLETT_MODEL || 'scarlett:turbo';
-let messages = [], simulation = false, speed = 'turbo', busy = false, controller, confirmation, connected = false, installed = [];
-const ui = new TerminalUI(submit, () => { controller?.abort(); if (confirmation) { confirmation = undefined; ui.notice = 'Execução cancelada.'; } });
+let messages = [], simulation = false, speed = 'turbo', agentMode = true, busy = false, controller, confirmation, connected = false, installed = [];
+const pc = new PcTools();
+const preferenceStore = new PreferenceStore();
+let preferences = { ...DEFAULT_PREFERENCES }, preferenceWarning;
+try { preferences = await preferenceStore.load(); } catch (error) { preferenceWarning = error.message; }
+const ui = new TerminalUI(submit, () => { controller?.abort(); cancelPending(); });
+ui.agent = agentMode; ui.workspace = process.cwd(); ui.nickname = preferences.nickname;
 ui.model = model;
 function status(value, notice = ui.notice) { ui.status = value; ui.notice = notice; ui.render(); }
-function stop() { controller?.abort(); ui.close(); process.exit(0); }
+function stop() { controller?.abort(); confirmation?.state?.controller.abort(); ui.close(); process.exit(0); }
 process.on('SIGTERM', stop);
 process.on('SIGINT', stop);
 process.on('uncaughtException', error => { ui.close(); console.error(error); process.exit(1); });
@@ -30,6 +38,87 @@ async function connect() {
   }
   status(installed.length ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'SEM MODELO', installed.length ? 'Tudo pronto. Seus dados ficam no computador.' : 'Digite /setup para baixar e preparar Scarlett. O download inicial usa internet.');
 }
+
+function finishAgent(state, ending = '') {
+  if (state.finished) return;
+  state.finished = true;
+  const summary = [state.answer.trim(), state.results.length ? `Resultados das ferramentas:\n${state.results.join('\n')}` : '', ending].filter(Boolean).join('\n\n');
+  if (summary) messages.push({ role: 'user', content: state.user }, { role: 'assistant', content: summary.slice(-100000) });
+}
+function cancelPending() {
+  if (!confirmation) return;
+  if (confirmation.type === 'agent') {
+    const state = confirmation.state;
+    state.controller.abort();
+    state.iterator.return().catch(() => {});
+    finishAgent(state, 'A próxima ação foi cancelada pelo usuário.');
+  }
+  confirmation = undefined;
+  ui.notice = 'Execução cancelada.';
+  ui.status = connected ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'OFFLINE';
+}
+async function localTool(name, args) {
+  const proposal = await pc.prepare(name, args);
+  if (proposal.mutates) {
+    confirmation = { type: 'pc', proposal };
+    ui.add('Confirmar ação', `${proposal.preview}\n\nDigite EXECUTAR para aplicar. Esc cancela.`);
+    status('AGUARDANDO', 'Revise a ação e confirme com EXECUTAR.');
+  } else {
+    const result = await pc.execute(proposal);
+    ui.add('Computador', toolDisplay(name, result));
+  }
+}
+async function pumpAgent(state, approval) {
+  if (state.waitStart) { state.waitMs += performance.now() - state.waitStart; state.waitStart = undefined; }
+  try {
+    let step = await state.iterator.next(approval);
+    while (!step.done) {
+      const event = step.value;
+      if (event.type === 'approval') {
+        state.waitStart = performance.now();
+        confirmation = { type: 'agent', state };
+        ui.add('Confirmar ação do agente', `${event.proposal.preview}\n\nDigite EXECUTAR para aplicar e continuar a tarefa. Esc cancela.`);
+        status('AGUARDANDO', 'O agente aguarda sua confirmação. Nenhuma ação pendente foi executada.');
+        return;
+      }
+      if (event.type === 'round') status('AGENTE', `Etapa ${event.round}/8 · ${model} · Esc interrompe.`);
+      if (event.type === 'token') {
+        state.first ??= (performance.now() - state.started - state.waitMs) / 1000;
+        if (!state.item) {
+          const greeting = state.addressed ? '' : addressedReply('', preferences);
+          state.item = ui.add('Scarlett', greeting); state.answer += greeting; state.addressed = true;
+        }
+        state.item.text += event.text; state.answer += event.text;
+        ui.scheduleRender();
+      }
+      if (event.type === 'stats') {
+        state.tokens += event.stats.eval_count || 0;
+        state.duration += event.stats.eval_duration || 0;
+      }
+      if (event.type === 'tool_start') {
+        state.item = undefined;
+        state.outputItem = ui.add(`Ferramenta · ${event.name}`, '');
+        status('EXECUTANDO', event.name);
+      }
+      if (event.type === 'tool_result') {
+        const text = JSON.stringify(event.result, null, 2);
+        if (state.outputItem) { state.outputItem.text = toolDisplay(event.name, event.result); state.outputItem = undefined; ui.render(); }
+        else ui.add(`Ferramenta · ${event.name}`, toolDisplay(event.name, event.result));
+        state.results.push(`${event.name}: ${text.slice(0, 1800)}`);
+      }
+      if (event.type === 'limit') ui.add('Agente', event.text);
+      step = await state.iterator.next();
+    }
+    finishAgent(state, step.value?.completed === false ? 'Limite de etapas atingido; tarefa pode estar incompleta.' : '');
+    const elapsed = (performance.now() - state.started - state.waitMs) / 1000;
+    ui.metrics = { tps: state.duration > 0 ? state.tokens / (state.duration / 1e9) : 0, first: state.first ?? 0, elapsed, tokens: state.tokens, profile: `agente/${speed}`, model };
+    status('ONLINE', `Agente finalizado · ${state.results.length} resultados · ${elapsed.toFixed(1)}s sem tempo de confirmação.`);
+  } catch (error) {
+    finishAgent(state, state.controller.signal.aborted ? 'Tarefa interrompida.' : `Tarefa interrompida por erro: ${error.message}`);
+    throw error;
+  }
+}
+
 async function command(line) {
   const space = line.indexOf(' ');
   const name = space < 0 ? line : line.slice(0, space);
@@ -37,6 +126,35 @@ async function command(line) {
   switch (name) {
     case '/help': ui.add('Comandos', COMMANDS.map(([c, d]) => `${c.padEnd(16)} ${d}`).join('\n')); break;
     case '/connect': await connect(); break;
+    case '/name':
+      if (!arg) { ui.add('Personalização', preferences.nickname ? `Estou te chamando de ${preferences.nickname}. Use /name NOVO_APELIDO ou /name reset.` : 'Use /name Chefia para escolher como quer ser chamado.'); break; }
+      preferences = await preferenceStore.save({ ...preferences, nickname: arg === 'reset' ? '' : arg });
+      ui.nickname = preferences.nickname;
+      ui.add('Scarlett', preferences.nickname ? `Combinado, ${preferences.nickname}. Vou guardar esse apelido para as próximas conversas.` : 'Apelido removido.'); break;
+    case '/personality':
+      if (!arg) { ui.add('Personalidade', `Apelido: ${preferences.nickname || 'não definido'}\nEstilo: ${preferences.instructions || 'padrão'}\n\n/name Chefia\n/personality Responda de forma curta, em português.\n/personality reset\n\nPreferências são salvas neste computador. O estilo orienta o modelo; não treina pesos. O criador de Scarlett continua sendo mark.code.`); break; }
+      preferences = await preferenceStore.save({ ...preferences, instructions: arg === 'reset' ? '' : arg });
+      ui.add('Scarlett', 'Estilo salvo para as próximas conversas.'); break;
+    case '/agent':
+      if (!['on', 'off'].includes(arg)) throw new Error('Uso: /agent on|off');
+      agentMode = arg === 'on'; ui.agent = agentMode;
+      ui.notice = agentMode ? 'Agente ativo: ferramentas reais com confirmação para alterações.' : 'Modo conversa: sem ferramentas automáticas.'; break;
+    case '/cd': {
+      if (!arg) { ui.add('Pasta atual', process.cwd()); break; }
+      const target = await realpath(pc.path(arg));
+      if (!(await stat(target)).isDirectory()) throw new Error('O caminho precisa ser uma pasta.');
+      process.chdir(target); ui.workspace = target;
+      ui.notice = `Pasta de trabalho: ${target}`; break;
+    }
+    case '/ls': await localTool('list_directory', { path: arg || '.' }); break;
+    case '/read': await localTool('read_file', { path: arg }); break;
+    case '/mkdir': await localTool('make_directory', { path: arg }); break;
+    case '/write':
+      if (!arg) throw new Error('Uso: /write {"path":"arquivo.txt","content":"texto","overwrite":false}');
+      await localTool('write_file', JSON.parse(arg)); break;
+    case '/build':
+      if (!arg) throw new Error('Uso: /build {"source":"main.c","target":"windows","output":"main.exe"}');
+      await localTool('build_program', JSON.parse(arg)); break;
     case '/setup': {
       const variant = arg || 'turbo';
       if (!['turbo', 'balanced'].includes(variant)) throw new Error('Use /setup turbo ou /setup balanced.');
@@ -102,7 +220,7 @@ async function command(line) {
       break;
     }
     case '/new': messages = []; ui.items = []; ui.notice = 'Nova conversa. O que vamos construir?'; break;
-    case '/system': ui.add('Personalidade', systemPrompt(simulation)); break;
+    case '/system': ui.add('Personalidade', systemPrompt(simulation) + '\n' + personalizationPrompt(preferences)); break;
     case '/sim': case '/fast':
       if (!['on', 'off'].includes(arg)) throw new Error(`Uso: ${name} on|off`);
       if (name === '/sim') { simulation = arg === 'on'; ui.sim = simulation; }
@@ -136,7 +254,26 @@ async function submit(raw) {
   busy = true; ui.busy = true; ui.render();
   try {
     if (confirmation) {
-      const pending = confirmation; confirmation = undefined;
+      const pending = confirmation;
+      if (pending.type === 'agent') {
+        if (line === 'EXECUTAR') {
+          confirmation = undefined; controller = pending.state.controller;
+          await pumpAgent(pending.state, true);
+        } else cancelPending();
+        return;
+      }
+      confirmation = undefined;
+      if (pending.type === 'pc') {
+        if (line === 'EXECUTAR') {
+          controller = new AbortController();
+          const item = ui.add('Computador', '');
+          status('EXECUTANDO', pending.proposal.name);
+          const result = await pc.execute(pending.proposal, { signal: controller.signal, onOutput: chunk => { item.text = (item.text + chunk).slice(-12000); ui.scheduleRender(); } });
+          item.text = toolDisplay(pending.proposal.name, result);
+          status(connected ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'OFFLINE', 'Ação finalizada. Consulte o resultado.');
+        } else ui.notice = 'Execução cancelada.';
+        return;
+      }
       if (pending.type === 'training' && line === 'TREINAR') {
         controller = new AbortController();
         const item = ui.add('Treinamento LoRA', '');
@@ -153,10 +290,20 @@ async function submit(raw) {
       } else ui.notice = 'Execução cancelada.';
     } else if (line.startsWith('/')) await command(line);
     else {
+      const nickname = nicknameRequest(line);
+      if (nickname) {
+        preferences = await preferenceStore.save({ ...preferences, nickname }); ui.nickname = nickname;
+        ui.add('Você', line);
+        const answer = `Combinado, ${nickname}. Vou te chamar assim e guardar para as próximas conversas.`;
+        ui.add('Scarlett', answer);
+        messages.push({ role: 'user', content: line }, { role: 'assistant', content: answer });
+        ui.notice = 'Apelido salvo. Personalização sem inferência ou treinamento.';
+        return;
+      }
       const identity = identityReply(line);
       if (identity) {
         ui.add('Você', line);
-        ui.add('Scarlett', identity);
+        ui.add('Scarlett', addressedReply(identity, preferences));
         messages.push({ role: 'user', content: line }, { role: 'assistant', content: identity });
         ui.notice = 'Identidade da Scarlett · resposta do aplicativo, sem inferência.';
         return;
@@ -164,7 +311,14 @@ async function submit(raw) {
       if (!connected) await connect();
       if (!installed.length) throw new Error('Ainda não há modelo instalado. Use /setup para baixar e preparar Scarlett.');
       ui.add('Você', line);
-      const item = ui.add('Scarlett', '');
+      if (agentMode && !demo) {
+        controller = new AbortController();
+        const state = { user: line, controller, started: performance.now(), waitMs: 0, tokens: 0, duration: 0, answer: '', results: [] };
+        state.iterator = agentTurn({ api, model, messages: contextMessages(systemPrompt(simulation) + '\n' + personalizationPrompt(preferences) + '\n' + agentInstructions(process.cwd()), messages, line, speed), tools: pc, signal: controller.signal, speed, onOutput: (_, text) => { if (state.outputItem) { state.outputItem.text = (state.outputItem.text + text).slice(-12000); ui.scheduleRender(); } } });
+        await pumpAgent(state);
+        return;
+      }
+      const item = ui.add('Scarlett', addressedReply('', preferences));
       controller = new AbortController();
       const started = performance.now();
       status(demo ? 'DEMONSTRAÇÃO' : 'GERANDO', 'Preparando resposta… Esc interrompe.');
@@ -176,7 +330,7 @@ async function submit(raw) {
             if (controller.signal.aborted) break;
             item.text += token; ui.render(); await new Promise(r => setTimeout(r, 14));
           }
-        } else for await (const event of api.chat(model, contextMessages(systemPrompt(simulation), messages, line, speed), controller.signal, speed)) {
+        } else for await (const event of api.chat(model, contextMessages(systemPrompt(simulation) + '\n' + personalizationPrompt(preferences), messages, line, speed), controller.signal, speed)) {
           if (event.message?.content) {
             firstToken ??= performance.now();
             item.text += event.message.content;
@@ -199,11 +353,12 @@ async function submit(raw) {
       const network = error.message === 'fetch failed' || /Ollama não|sockets|Ollama: HTTP/.test(error.message);
       if (network) connected = false;
       ui.status = connected ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'OFFLINE';
-      const message = error.message === 'fetch failed' ? 'Não consegui acessar Ollama. Use /connect para iniciar e reconectar; se persistir, execute ollama serve em outro terminal.' : error.message;
+      const message = /does not support tools|doesn't support tools/i.test(error.message) ? 'Este modelo não suporta ferramentas. Escolha um modelo compatível em /models ou use /agent off e os comandos diretos /mkdir, /write, /build e /run.' : error.message === 'fetch failed' ? 'Não consegui acessar Ollama. Use /connect para iniciar e reconectar; se persistir, execute ollama serve em outro terminal.' : error.message;
       ui.add('Atenção', message);
       ui.notice = network ? 'Use /connect para reconectar ao Ollama.' : message;
     }
-  } finally { controller = undefined; busy = false; ui.busy = false; ui.render(); }
+  } finally { if (confirmation?.type !== 'agent') controller = undefined; busy = false; ui.busy = false; ui.render(); }
 }
 ui.start();
+if (preferenceWarning) ui.add('Preferências', `Não consegui carregar suas preferências: ${preferenceWarning}. Use /name ou /personality para salvar uma configuração nova.`);
 await submit('/connect');

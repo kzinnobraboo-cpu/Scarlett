@@ -1,7 +1,7 @@
 {
   "name": "scarlett-local",
-  "version": "1.1.0-beta.2",
-  "description": "Scarlett 1.1 — assistente local de terminal criada por mark.code",
+  "version": "1.2.0-beta.1",
+  "description": "Scarlett 1.2 — agente local de terminal criado por mark.code",
   "type": "module",
   "private": true,
   "bin": {

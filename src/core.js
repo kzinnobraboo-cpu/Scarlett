@@ -34,11 +34,11 @@ export class Ollama {
     if (!response.ok) throw new Error(`Ollama HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
     return response.json();
   }
-  async *chat(model, messages, signal, speed = 'turbo') {
+  async *chat(model, messages, signal, speed = 'turbo', tools) {
     const response = await fetch(`${this.host}/api/chat`, {
       method: 'POST', signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: true, keep_alive: '30m', options: { num_ctx: profileFor(speed).num_ctx, num_predict: profileFor(speed).num_predict, temperature: 0.6 } })
+      body: JSON.stringify({ model, messages, ...(tools?.length ? { tools } : {}), stream: true, keep_alive: '30m', options: { num_ctx: Math.max(profileFor(speed).num_ctx, tools?.length ? 4096 : 0), num_predict: Math.max(profileFor(speed).num_predict, tools?.length ? 1536 : 0), temperature: 0.6 } })
     });
     if (!response.ok) throw new Error(`Ollama HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
     let pending = '';
@@ -74,10 +74,14 @@ export function validateSession(value) {
   return value.map(({ role, content }) => ({ role, content }));
 }
 
-export function runCommand(command, onOutput, { cwd = process.cwd(), timeout = 30000, signal } = {}) {
+export function runCommand(command, onOutput, options = {}) {
+  return runProcess(command, [], onOutput, { ...options, shell: true });
+}
+
+export function runProcess(executable, args, onOutput, { cwd = process.cwd(), timeout = 30000, signal, shell = false, env = process.env } = {}) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(signal.reason || new Error('Comando cancelado.')); return; }
-    const child = spawn(command, { cwd, shell: true, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
+    const child = spawn(executable, args, { cwd, shell, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
     let timedOut = false, aborted = false;
     const killTree = () => {
       if (!child.pid || child.exitCode != null) return;

@@ -205,3 +205,40 @@ test('perguntas diretas de autoria recebem o crédito fixo de mark.code', () => 
 test('identidade não intercepta autoria de terceiros ou tarefas compostas', () => {
   for (const question of ['Quem criou Linux?', 'Quem criou o Qwen?', 'Como criar um jogo?', 'Quem te criou? Depois escreva uma função.', 'Quem criou você e como funciona o Linux?']) assert.equal(identityReply(question), null, question);
 });
+
+await import('./agent.test.js');
+
+const { PreferenceStore, nicknameRequest, personalizationPrompt, addressedReply } = await import('../src/preferences.js');
+test('personalização natural aceita chefia e preserva tarefas compostas', () => {
+  for (const input of ['me chame de chefia', 'a partir de agora sou seu dono me chame de chefia', 'apartir de agr sou seu dono me chame de chefia', 'Olá, pode me chamar de chefia.', 'Me chama de "chefia"']) assert.equal(nicknameRequest(input), 'chefia', input);
+  assert.equal(nicknameRequest('crie um programa e me chame de chefia'), null);
+  assert.equal(nicknameRequest('me chame de chefia e faça um programa'), null);
+  assert.equal(nicknameRequest('me chame de \x1b[2J'), null);
+});
+test('apelido e estilo persistem entre instâncias sem dados no repositório', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'scarlett-prefs-'));
+  try {
+    const path = join(dir, 'config', 'preferences.json');
+    const store = new PreferenceStore(path);
+    assert.deepEqual(await store.load(), { nickname: '', instructions: '' });
+    await store.save({ nickname: 'Chefia', instructions: 'Responda de forma curta.' });
+    assert.deepEqual(await new PreferenceStore(path).load(), { nickname: 'Chefia', instructions: 'Responda de forma curta.' });
+    await store.save({ nickname: '', instructions: '' });
+    assert.equal((await new PreferenceStore(path).load()).nickname, '');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+test('preferências não substituem identidade ou permissões do sistema', () => {
+  const prefs = { nickname: 'Chefia', instructions: 'Seja breve.' };
+  assert.match(personalizationPrompt(prefs), /não uma mudança na autoria/);
+  assert.match(addressedReply(IDENTITY, prefs), /Chefia,[\s\S]*mark.code/);
+  assert.equal(addressedReply(IDENTITY, { nickname: '' }), IDENTITY);
+});
+test('preferências rejeitam texto inválido antes de salvar', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'scarlett-invalid-prefs-'));
+  try {
+    const store = new PreferenceStore(join(dir, 'preferences.json'));
+    await assert.rejects(store.save({ nickname: 'x'.repeat(61) }));
+    await assert.rejects(store.save({ instructions: '\x1b[2J' }));
+    await assert.rejects(store.save({ instructions: 'x'.repeat(2001) }));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

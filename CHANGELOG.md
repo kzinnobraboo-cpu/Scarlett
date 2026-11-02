@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.2.0-beta.1 — Agente e personalização
+
+- Ciclo de ferramentas nativas Ollama, resultados reais e confirmação antes de alterações.
+- Arquivos, pastas, comandos, diretório de trabalho e builds C/C++/Python.
+- Apelido por linguagem natural, `/name` e `/personality`, persistidos fora do projeto.
+- Publicação pública com `npm run publish:beta -- --public`.
+- Compilação e execução real de um programa C no Linux verificadas.
+
 ## 1.1.0-beta.2 — Correção de identidade
 
 - Resposta fixa de autoria para perguntas diretas sobre Scarlett, independente do modelo.

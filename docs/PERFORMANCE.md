@@ -1,6 +1,6 @@
 # Medir desempenho
 
-A 1.1 oferece redução de trabalho de contexto, um modelo inicial menor e menos trabalho de renderização. São mudanças de implementação; não são prova de uma determinada velocidade no seu computador.
+A 1.2 oferece redução de trabalho de contexto, um modelo inicial menor e menos trabalho de renderização. São mudanças de implementação; não são prova de uma determinada velocidade no seu computador.
 
 ## Modelo e perfil são escolhas separadas
 
@@ -34,3 +34,7 @@ O benchmark faz pré-carga, depois repete uma pergunta fixa. O relatório JSON r
 Dentro da conversa, `/stats` mostra as métricas da última inferência concluída. Demo não gera métricas falsas. A configuração da beta não força ROCm nem presume aceleração na GPU integrada; consulte o suporte do Ollama para seu dispositivo.
 
 Referências: [API de chat](https://docs.ollama.com/api/chat), [API de geração](https://docs.ollama.com/api/generate), [FAQ](https://docs.ollama.com/faq).
+
+## Modo agente
+
+Ferramentas precisam de espaço para esquemas, argumentos e resultados. O agente solicita no mínimo 4096 tokens de contexto e 1536 de saída, inclusive com perfil Turbo. Cada etapa exige outra inferência; o tempo de confirmação é excluído da métrica total exibida ao final. O primeiro token exibido pode vir após ferramentas, e não mede o primeiro token interno de uma chamada. Para uma conversa simples e contexto menor, use `/agent off`. Os atalhos `/mkdir`, `/read`, `/write` e `/build` dispensam inferência para preparar a ação.
