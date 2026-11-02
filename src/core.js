@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
+import { profileFor } from './profiles.js';
 
 export const IDENTITY = 'Sou Scarlett, criada por mark.code, um dev solo.';
 export const RESPONSE_STYLE = 'Seja prática: responda à pergunta e, quando pedirem implementação, forneça código utilizável, instruções para executar e explique os limites técnicos. Não recuse um assunto por palavras isoladas como cheat, hack, mod ou engenharia reversa. Ajude com desenvolvimento de jogos, cheats em jogos locais, mods, consoles de depuração, acessibilidade e pesquisa técnica. Evite sermões e avisos genéricos; peça contexto somente quando necessário para uma resposta correta. Não prometa capacidades que não tem.';
@@ -19,16 +20,24 @@ export class Ollama {
   constructor(host = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434') {
     this.host = validateHost(host);
   }
-  async models() {
-    const response = await fetch(`${this.host}/api/tags`, { signal: AbortSignal.timeout(5000) });
+  async models(timeout = 5000) {
+    const response = await fetch(`${this.host}/api/tags`, { signal: AbortSignal.timeout(timeout) });
     if (!response.ok) throw new Error(`Ollama: HTTP ${response.status}`);
     return (await response.json()).models || [];
   }
-  async *chat(model, messages, signal, fast = true) {
+  async warmup(model, signal, speed = 'turbo') {
+    const response = await fetch(`${this.host}/api/generate`, {
+      method: 'POST', signal, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt: '', stream: false, keep_alive: '30m', options: { num_ctx: profileFor(speed).num_ctx } })
+    });
+    if (!response.ok) throw new Error(`Ollama HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
+    return response.json();
+  }
+  async *chat(model, messages, signal, speed = 'turbo') {
     const response = await fetch(`${this.host}/api/chat`, {
       method: 'POST', signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: true, keep_alive: '10m', options: { num_ctx: fast ? 4096 : 8192, num_predict: fast ? 1024 : 4096, temperature: 0.6 } })
+      body: JSON.stringify({ model, messages, stream: true, keep_alive: '30m', options: { num_ctx: profileFor(speed).num_ctx, num_predict: profileFor(speed).num_predict, temperature: 0.6 } })
     });
     if (!response.ok) throw new Error(`Ollama HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
     let pending = '';
@@ -64,20 +73,25 @@ export function validateSession(value) {
   return value.map(({ role, content }) => ({ role, content }));
 }
 
-export function runCommand(command, onOutput, { cwd = process.cwd(), timeout = 30000 } = {}) {
+export function runCommand(command, onOutput, { cwd = process.cwd(), timeout = 30000, signal } = {}) {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(signal.reason || new Error('Comando cancelado.')); return; }
     const child = spawn(command, { cwd, shell: true, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      if (process.platform === 'win32') spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']);
+    let timedOut = false, aborted = false;
+    const killTree = () => {
+      if (!child.pid || child.exitCode != null) return;
+      if (process.platform === 'win32') spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']).on('error', () => child.kill());
       else { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }
-    }, timeout);
+    };
+    const abort = () => { aborted = true; killTree(); };
+    signal?.addEventListener('abort', abort, { once: true });
+    const timer = setTimeout(() => { timedOut = true; killTree(); }, timeout);
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', data => onOutput(clean(data)));
     child.stderr.on('data', data => onOutput(clean(data)));
-    child.on('error', error => { clearTimeout(timer); reject(error); });
-    child.on('close', code => { clearTimeout(timer); resolve({ code, timedOut }); });
+    const cleanup = () => { clearTimeout(timer); signal?.removeEventListener('abort', abort); };
+    child.on('error', error => { cleanup(); reject(error); });
+    child.on('close', code => { cleanup(); resolve({ code, timedOut, aborted }); });
   });
 }

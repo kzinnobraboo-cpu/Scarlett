@@ -26,7 +26,7 @@ test('Ollama processa streaming fragmentado, UTF-8, linha final e parâmetros', 
     if (url.endsWith('/api/tags')) return Response.json({ models: [{ name: 'scarlett' }] });
     const body = JSON.parse(options.body);
     assert.equal(body.stream, true);
-    assert.equal(body.options.num_ctx, 4096);
+    assert.equal(body.options.num_ctx, 2048);
     const bytes = Buffer.from(JSON.stringify({ message: { content: 'Olá ✦' } }) + '\n' + JSON.stringify({ done: true }));
     const split = bytes.indexOf(Buffer.from('á')) + 1;
     return new Response(new ReadableStream({ start(controller) {
@@ -99,12 +99,12 @@ test('layout mantém caixa de entrada em terminais pequenos e grandes', t => {
   let output = '';
   const mock = t.mock.method(process.stdout, 'write', text => { output += text; return true; });
   try {
-    for (const [columns, rows] of [[40, 12], [80, 24], [120, 40]]) {
+    for (const [columns, rows] of [[20, 10], [40, 12], [80, 24], [120, 40]]) {
       process.stdout.columns = columns; process.stdout.rows = rows;
       const ui = new TerminalUI(() => {}, () => {});
       ui.tty = true; ui.input = '/';
       output = ''; ui.render();
-      const plain = output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '');
+      const plain = ui.lastScreen.join('\r\n').replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '');
       assert.match(plain, /╭/);
       assert.match(plain, /╰/);
       assert.equal(plain.split('\r\n').length, rows);
@@ -115,4 +115,83 @@ test('layout mantém caixa de entrada em terminais pequenos e grandes', t => {
     if (originalColumns === undefined) delete process.stdout.columns; else process.stdout.columns = originalColumns;
     if (originalRows === undefined) delete process.stdout.rows; else process.stdout.rows = originalRows;
   }
+});
+
+const { PROFILES, contextMessages, profileFor } = await import('../src/profiles.js');
+const { exportExamples, trainingTask, runTraining } = await import('../src/training.js');
+const { mkdtemp, readFile, writeFile, rm } = await import('node:fs/promises');
+const { join } = await import('node:path');
+const { tmpdir } = await import('node:os');
+
+test('perfis controlam contexto e geração sem prometer benchmarks', () => {
+  assert.equal(profileFor('turbo').num_ctx, 2048);
+  assert.ok(PROFILES.turbo.num_predict < PROFILES.quality.num_predict);
+  assert.throws(() => profileFor('invalid'));
+  assert.equal(profileFor(true), PROFILES.balanced);
+});
+test('contexto preserva instruções e pergunta atual, limitando turnos completos', () => {
+  const history = Array.from({ length: 12 }, (_, i) => [{ role: 'user', content: `u${i}` }, { role: 'assistant', content: `a${i}` }]).flat();
+  const context = contextMessages('system', history, 'pergunta atual', 'turbo');
+  assert.equal(context.length, 10);
+  assert.deepEqual(context[0], { role: 'system', content: 'system' });
+  assert.equal(context[1].content, 'u8');
+  assert.equal(context.at(-1).content, 'pergunta atual');
+  const large = [{ role: 'user', content: 'x'.repeat(4000) }, { role: 'assistant', content: 'a' }];
+  assert.equal(contextMessages('system', large, 'pergunta atual').length, 2);
+});
+test('warmup usa contexto do perfil e mantém o modelo em memória', async t => {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.match(url, /\/api\/generate$/);
+    const body = JSON.parse(options.body);
+    assert.equal(body.prompt, ''); assert.equal(body.stream, false);
+    assert.equal(body.keep_alive, '30m'); assert.equal(body.options.num_ctx, 2048);
+    return Response.json({ done: true });
+  });
+  assert.equal((await new Ollama().warmup('scarlett:turbo')).done, true);
+});
+test('exportação mantém contexto e não corrompe arquivo sem newline final', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'scarlett-test-'));
+  try {
+    const path = join(dir, 'data.jsonl');
+    await writeFile(path, JSON.stringify({ messages: [{ role: 'user', content: 'u' }, { role: 'assistant', content: 'a' }] }));
+    const messages = [{ role: 'user', content: 'crie um projeto' }, { role: 'assistant', content: 'código' }, { role: 'user', content: 'explique isso' }, { role: 'assistant', content: 'explicação' }];
+    const result = await exportExamples(messages, path);
+    const rows = (await readFile(path, 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(result.count, 1); assert.equal(rows.length, 2);
+    assert.deepEqual(rows[1].messages, messages);
+    await assert.rejects(exportExamples([{ role: 'user', content: 'incompleta' }], path));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+test('treinamento passa caminhos como argumentos sem interpolação de shell', async () => {
+  const task = trainingTask('arquivo com espaços; literal.jsonl', true);
+  assert.ok(task.args.some(s => s.endsWith('arquivo com espaços; literal.jsonl')));
+  assert.ok(task.args.includes('--validate-only'));
+  let output = '';
+  await runTraining({ executable: process.platform === 'win32' ? 'python' : 'python3', args: ['-c', 'print("validação")'] }, text => { output += text; });
+  assert.match(output, /validação/);
+});
+test('renderização diferencial evita reenviar tela inalterada', t => {
+  let output = '';
+  const mock = t.mock.method(process.stdout, 'write', text => { output += text; return true; });
+  try {
+    const ui = new TerminalUI(() => {}, () => {}); ui.tty = true;
+    ui.render(); const initial = output.length;
+    output = ''; ui.render();
+    assert.ok(output.length < initial / 10);
+    ui.notice = 'notificação'; output = ''; ui.render();
+    assert.match(output, /notificação/);
+    assert.ok(output.length < initial / 2);
+  } finally { mock.mock.restore(); }
+});
+
+test('cancelamento interrompe o comando em execução', async () => {
+  const controller = new AbortController();
+  const python = process.platform === 'win32' ? 'python' : 'python3';
+  const resultPromise = runCommand(`${python} -c "import time; time.sleep(30)"`, () => {}, { signal: controller.signal });
+  const timer = setTimeout(() => controller.abort(), 50);
+  try {
+    const result = await resultPromise;
+    assert.equal(result.aborted, true);
+    assert.equal(result.timedOut, false);
+  } finally { clearTimeout(timer); }
 });

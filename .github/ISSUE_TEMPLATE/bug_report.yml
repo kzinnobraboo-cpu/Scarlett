@@ -1,0 +1,23 @@
+name: Relatar um problema
+description: Ajude a reproduzir um erro na Scarlett.
+title: '[Bug] '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: O que aconteceu?
+      description: Inclua o que esperava e os passos para reproduzir. Remova dados privados.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente
+      placeholder: 'Linux/Windows, Node, Ollama, modelo e perfil'
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Mensagem de erro
+      render: text

@@ -1,11 +1,22 @@
 {
   "name": "scarlett-local",
-  "version": "1.0.0-beta.1",
-  "description": "Scarlett Beta 1.0 — assistente local de terminal criada por mark.code",
+  "version": "1.1.0-beta.1",
+  "description": "Scarlett 1.1 — assistente local de terminal criada por mark.code",
   "type": "module",
   "private": true,
-  "bin": { "scarlett": "src/cli.js" },
-  "scripts": { "start": "node src/cli.js", "demo": "node src/cli.js --demo", "test": "node test/core.test.js" },
-  "engines": { "node": ">=22" },
+  "bin": {
+    "scarlett": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "demo": "node src/cli.js --demo",
+    "test": "node test/core.test.js",
+    "bench": "node scripts/benchmark.mjs",
+    "preview": "node scripts/preview.mjs",
+    "publish:beta": "node scripts/publish.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "author": "mark.code"
 }

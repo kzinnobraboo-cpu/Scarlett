@@ -1,108 +1,162 @@
-# Scarlett ✦ — Beta 1.0
+<div align="center">
 
-**Versão: 1.0.0-beta.1 · Criada por mark.code, um dev solo.**
+<img src="docs/assets/hero.svg" alt="Scarlett 1.1 — Seu terminal. Sua inteligência. Criada por mark.code." width="100%" />
 
-Primeira versão beta: interface de terminal em tela inteira, modelos locais via Ollama, preparação pelo comando `/setup` e execução de comandos com confirmação. Está em desenvolvimento; consulte as limitações e instruções abaixo.
+**Uma assistente local para conversar, programar e personalizar.**
 
-Assistente local de terminal criada por **mark.code, um dev solo**, para Linux e Windows. Interface escura com detalhes em vermelho, streaming, comandos com Tab, modelos locais e execução de comandos confirmada pelo usuário. O terminal não tem dependências npm.
+[![Versão](https://img.shields.io/badge/versão-1.1_beta-ff6f9b?style=flat-square)](RELEASE_NOTES.md)
+[![Node](https://img.shields.io/badge/Node.js-22%2B-64e1d5?style=flat-square)](https://nodejs.org/)
+[![Ollama](https://img.shields.io/badge/inferência-Ollama-b5a3ff?style=flat-square)](https://ollama.com/)
+[![Tests](https://github.com/kzinnobraboo-cpu/Scarlett/actions/workflows/test.yml/badge.svg)](https://github.com/kzinnobraboo-cpu/Scarlett/actions/workflows/test.yml)
 
-Scarlett é um aplicativo que utiliza pesos existentes através do Ollama. O repositório inclui personalidade e ferramentas de ajuste LoRA; não inclui pesos próprios treinados. O crédito de mark.code refere-se ao aplicativo Scarlett, não à autoria dos modelos base.
+[Começar](#começar-em-dois-passos) · [Comandos](#seu-terminal-seu-fluxo) · [Treinar](docs/TRAINING.md) · [Desempenho](docs/PERFORMANCE.md) · [Contribuir](CONTRIBUTING.md)
 
-## Começar
+</div>
 
-Instale [Node.js 22 ou superior](https://nodejs.org/) e [Ollama](https://ollama.com/download) para seu sistema. Dentro desta pasta:
+---
+
+## Conheça a Scarlett
+
+Criada por **mark.code, um dev solo**, Scarlett combina uma interface de terminal com modelos executados no seu computador. Você escolhe os pesos, ajusta o perfil de desempenho e personaliza a personalidade. Conversas ficam em memória até você decidir salvá-las.
+
+<img src="docs/assets/terminal.svg" alt="Interface real da Scarlett 1.1, gerada em modo demonstração, com painel lateral e atalhos" width="100%" />
+
+<p align="center"><sub>Prévia gerada pelo renderizador do aplicativo em modo demonstração. Não representa inferência ou benchmark.</sub></p>
+
+<table>
+<tr><td width="33%"><strong>✦ Converse</strong><br>Streaming, seleção de modelos, contexto ajustável e métricas da resposta.</td><td width="33%"><strong>⌘ Crie</strong><br>Código para Linux e Windows, mods, depuração e comandos executados com sua confirmação.</td><td width="33%"><strong>◆ Personalize</strong><br>Exporte exemplos, valide datasets e inicie ajustes LoRA pelo terminal.</td></tr>
+</table>
+
+## O que chegou na 1.1
+
+- **Turbo opcional com modelo 1.5B**, além da instalação equilibrada 3B. Não substitui os modelos da beta anterior.
+- **Três perfis de desempenho** e `/warmup` para pré-carregar o modelo.
+- **Interface com painel lateral**, cartões, blocos de código e atualização apenas das linhas alteradas.
+- **Training Studio**: `/train export`, `/train check` e `/train start`.
+- **Benchmark reproduzível** para medir latência e tokens por segundo no seu hardware.
+
+## Começar em dois passos
+
+Instale [Node.js 22+](https://nodejs.org/) e [Ollama](https://ollama.com/download). Abra a pasta do projeto no terminal:
 
 ```sh
 npm start
 ```
 
-Scarlett verifica a conexão e tenta iniciar `ollama serve` automaticamente. Na primeira execução, digite **`/setup`** dentro da Scarlett: isso baixa `qwen2.5:3b` e cria o modelo `scarlett`, mostrando progresso na barra de status. O download pode ocupar alguns GB e levar vários minutos. Esc cancela; `/setup` permite tentar novamente. Se já houver modelos instalados, você pode selecioná-los sem baixar outro.
+Scarlett tenta iniciar o serviço Ollama automaticamente. Dentro dela, prepare o modelo:
 
-Se o serviço não puder iniciar, abra outro terminal e execute `ollama serve`; depois use `/connect` dentro da Scarlett. Não é necessário executar `ollama pull` antes de iniciar o servidor. O download inicial precisa de internet. Depois disso, a conversa usa somente o Ollama local. O aplicativo aceita apenas endereços de loopback e não contém telemetria. Instalação, downloads e comandos executados manualmente podem acessar a rede.
+```text
+/setup
+```
 
-Para testar só a interface sem baixar modelos:
+Isso baixa `qwen2.5:1.5b` e cria `scarlett:turbo`. O download inicial ocupa aproximadamente 1 GB, além do armazenamento de runtime/cache, e precisa de internet. Após o download, a conversa usa o serviço local. Para instalar a opção 3B, use `/setup balanced`.
+
+**Já tem a beta 1.0?** Seus modelos continuam disponíveis em `/models`. Para experimentar o novo modelo, execute `/setup`. O modelo e o perfil de desempenho são escolhas independentes; `/speed turbo` não troca os pesos de um modelo 3B por 1.5B.
+
+Se Ollama não responder, execute `ollama serve` em outro terminal e use `/connect`. Veja [solução de problemas](docs/TROUBLESHOOTING.md).
+
+<details>
+<summary><strong>Quero ver a interface sem baixar um modelo</strong></summary>
 
 ```sh
 npm run demo
 ```
 
-Digite uma mensagem; nesse modo a resposta é uma demonstração identificada, não inferência real.
+A demo identifica suas respostas como demonstração e não executa inferência. Para conversar com um modelo real, use `npm start`.
 
-## Comandos
+</details>
 
-| Comando | Ação |
+## Seu terminal, seu fluxo
+
+Digite `/` e navegue com **↑ ↓**, **Tab** e **Enter**. **Esc** interrompe geração, download ou treinamento. **PgUp/PgDn** percorrem o histórico. **Ctrl+C** sai.
+
+| Comando | O que faz |
 | --- | --- |
-| `/models` | Listar modelos instalados |
-| `/setup` | Baixar modelo base e preparar Scarlett |
-| `/connect` | Iniciar Ollama se necessário e reconectar |
-| `/model nome` | Trocar modelo e iniciar conversa nova |
-| `/new` | Limpar histórico em memória |
-| `/save conversa.json` | Salvar mensagens, sem sobrescrever arquivo existente |
-| `/load conversa.json` | Carregar mensagens de uma sessão |
-| `/sim on` ou `/sim off` | Ativar/desativar premissas de ficção |
-| `/fast on` ou `/fast off` | Alternar contexto de 4096/8192 e limite de 1024/4096 tokens |
-| `/system` | Mostrar personalidade |
-| `/run comando` | Mostrar comando e solicitar confirmação |
-| `/quit` | Sair |
+| `/models` | Abre o seletor de modelos locais |
+| `/model NOME` | Seleciona um modelo e começa uma conversa nova |
+| `/setup` · `/setup balanced` | Instala Scarlett Turbo 1.5B ou Equilibrada 3B |
+| `/speed` | Abre os perfis Turbo, Equilibrado e Completo |
+| `/warmup` | Carrega o modelo na memória antes da conversa |
+| `/stats` | Mostra as métricas reais da última inferência |
+| `/train` | Mostra o fluxo de treinamento |
+| `/train export CAMINHO` | Adiciona a conversa a um dataset JSONL |
+| `/train check CAMINHO` | Valida o dataset, sem importar bibliotecas de ML |
+| `/train start CAMINHO` | Prepara um treinamento LoRA para sua confirmação |
+| `/run COMANDO` | Pede confirmação para executar um comando no computador |
+| `/save CAMINHO` · `/load CAMINHO` | Salva ou abre uma conversa JSON |
+| `/new` | Limpa a conversa em memória |
+| `/sim on` · `/sim off` | Ativa ou desativa premissas fictícias |
+| `/system` · `/help` · `/connect` | Personalidade, ajuda e reconexão |
 
-A interface ocupa a tela inteira, com cabeçalho, conversa rolável, entrada fixa e indicador de status. Digite `/` para abrir o menu: use setas ou Tab para escolher e Enter para executar. `/models` abre um seletor navegável. Comandos que recebem argumentos, como `/run`, preenchem a entrada para você completar. PgUp/PgDn percorrem a conversa, e setas recuperam mensagens anteriores quando o menu está fechado. Esc interrompe geração ou download; Ctrl+C sai e restaura o terminal.
+`/fast on` e `/fast off` continuam disponíveis como atalhos para Turbo e Completo.
 
-A conversa fica em memória até você usar `/save`. Arquivos de conversa são texto simples; evite publicar informações pessoais. As últimas 40 mensagens são enviadas ao modelo; o contexto também pode ser truncado por ele. Use `/new` para começar de novo.
+## Desempenho com escolhas claras
 
-## Controle do computador
+| Perfil | Contexto solicitado | Limite de geração | Histórico anterior |
+| --- | ---: | ---: | --- |
+| Turbo | 2.048 tokens | 512 tokens | Até 4 turnos, orçamento de 1.800 caracteres |
+| Equilibrado | 4.096 tokens | 1.536 tokens | Até 12 turnos, orçamento de 6.500 caracteres |
+| Completo | 8.192 tokens | 4.096 tokens | Até 20 turnos, orçamento de 14.000 caracteres |
 
-Use `/run` para comandos de arquivos, processos, diagnósticos ou abertura de aplicativos. Exemplos: `/run ls -lah` no Linux, `/run dir` no Windows, `/run start notepad` no Windows. Depois revise o comando e digite exatamente `EXECUTAR`. Qualquer outra resposta cancela. O shell é `/bin/sh` no Linux e `cmd.exe` no Windows; para PowerShell, invoque `powershell -Command ...` explicitamente.
+Turnos completos são preservados; a pergunta atual e a personalidade não são cortadas pelo aplicativo. O orçamento em caracteres é uma aproximação, não uma contagem de tokens. O backend pode truncar entradas maiores do que seu contexto.
 
-O comando usa as permissões do processo Scarlett e tem limite de 30 segundos. Isso não é uma sandbox: execute somente comandos que entende. Saída de comandos não é enviada automaticamente ao modelo. Esta versão não tem navegação visual, clique automático ou ciclo autônomo de ferramentas; o modelo pode sugerir comandos e você pode executá-los via `/run`.
+O perfil Turbo reduz trabalho de contexto e limite de saída. Um modelo menor costuma exigir menos recursos, com possível perda de qualidade. A velocidade real depende de CPU/GPU, memória, modelo e carregamento; **não prometemos respostas instantâneas**. Se a resposta atingir o limite, use `/speed quality` para mais espaço em uma nova solicitação.
 
-## Personalidade, respostas e desempenho
+Leia [como medir e comparar](docs/PERFORMANCE.md).
 
-O prompt identifica Scarlett como criação de mark.code e orienta respostas práticas, com código e instruções quando solicitado. Palavras como “cheat”, “hack” e “mod” não são motivo isolado de recusa; a personalidade inclui desenvolvimento de jogos, cheats locais, depuração e engenharia reversa. O dataset de exemplo inclui vida infinita em um jogo Godot. Isso é um exemplo de treinamento, não uma resposta fixa nem pesos treinados.
+## Treinamento que altera pesos
 
-Modelos podem não seguir instruções perfeitamente: valide a identidade e o comportamento no modelo que escolher. A interface não aplica um filtro de palavras às respostas; o comportamento é determinado pelos pesos, pelo prompt e pelos dados de treinamento. Um prompt não garante comportamento irrestrito. Reinicie a aplicação para carregar alterações no prompt; para atualizar também a personalidade persistida no modelo Ollama, execute `/setup` novamente. `/sim on` aceita premissas como “a grama é azul” dentro de um cenário fictício, sem converter isso em fato real.
+Editar o `Modelfile` muda instruções e parâmetros. **Treinamento LoRA é outra etapa**, com exemplos revisados e dependências Python próprias.
 
-O preset usa `qwen2.5:3b` como ponto de partida configurável. Não foi feito benchmark neste computador. Para reduzir memória e latência, escolha um modelo menor já instalado com `/model nome` e mantenha `/fast on`. O Ollama mantém o modelo carregado por dez minutos após solicitações. A primeira resposta pode demorar por carregamento; GPU, RAM, contexto e quantização influenciam a velocidade. Streaming mostra os tokens conforme chegam, sem prometer respostas instantâneas. A interface mostra tok/s quando o backend fornece métricas.
-
-`SCARLETT_MODEL` escolhe o modelo inicial e `OLLAMA_HOST` escolhe o endereço local. Exemplo no Linux: `SCARLETT_MODEL=scarlett npm start`. No PowerShell: `$env:SCARLETT_MODEL='scarlett'; npm start`.
-
-## Personalizar sem treinamento
-
-Edite `Modelfile`, preserve o `FROM` de um modelo instalado e execute novamente `ollama create scarlett -f Modelfile`. Isso configura personalidade e parâmetros; **não altera pesos**.
-
-## Treinar com LoRA
-
-Use preferencialmente um ambiente separado em Linux ou WSL2 com GPU compatível. A instalação do PyTorch depende da GPU: siga o [seletor oficial](https://pytorch.org/get-started/locally/). Treinar em CPU é possível para alguns modelos, mas pode ser muito lento. Sem conhecer seu hardware, não há garantia de memória ou tempo suficientes.
-
-1. Crie um ambiente Python compatível com PyTorch, TRL e PEFT; Python 3.11 é uma escolha conservadora.
-2. Instale as dependências de treinamento, separadas do terminal.
-3. Prepare conversas revisadas em JSONL, uma por linha, no formato de `training/example.jsonl`. Esse arquivo ilustra o formato e não é suficiente para ajuste útil. Crie um conjunto variado e mantenha avaliação separada, incluindo identidade, Linux, Windows, factualidade e simulações.
-
-```sh
-python -m venv .venv
-# Linux: source .venv/bin/activate
-# PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -r training/requirements.txt
-python training/train.py --model Qwen/Qwen2.5-0.5B-Instruct --data training/data.jsonl --output training/output --merge
+```text
+/train export training/data.jsonl
+/train check training/data.jsonl
+/train start training/data.jsonl
 ```
 
-O script faz ajuste supervisionado com LoRA, reserva 10% para avaliação e salva adaptadores. `--merge` também salva pesos mesclados em `training/output/merged`. O exemplo usa um modelo pequeno para experimentar o fluxo; não implica a mesma capacidade do preset 3B. Downloads precisam de internet e estão sujeitos à licença do modelo escolhido. Verifique o split e avaliações antes de um treino de produção; perda menor não prova que o modelo funciona melhor.
+O início do treino exige confirmação por `TREINAR`. Ele pode baixar pesos, ocupar muita memória e levar horas. O resultado é salvo em uma pasta nova, sem substituir treinamentos anteriores. O aplicativo não instala bibliotecas de ML automaticamente.
 
-Para usar os pesos resultantes no Ollama, confirme a arquitetura na documentação de importação. Se suportada, crie um novo Modelfile apontando `FROM` para a pasta de pesos mesclados; alternativamente converta para GGUF com as ferramentas compatíveis do llama.cpp e use `FROM ./modelo.gguf`. Preserve a personalidade de Scarlett no arquivo e execute `ollama create scarlett-tuned -f Modelfile.tuned`. Selecione com `/model scarlett-tuned`. Conversão e treinamento não foram executados ou validados neste ambiente.
+**[Guia completo: ambiente, dados, LoRA e importação →](docs/TRAINING.md)**
 
-Referências: [API de chat do Ollama](https://docs.ollama.com/api/chat), [importação de modelos](https://docs.ollama.com/import), [SFTTrainer](https://huggingface.co/docs/trl/sft_trainer).
+## Personalidade e controle
 
-## Desenvolvimento e GitHub
+Scarlett se apresenta como criação de mark.code. As respostas são orientadas para implementação prática, incluindo cheats em jogos locais, mods e pesquisa técnica. A interface não aplica um filtro de palavras. O comportamento final depende dos pesos, das instruções e do treinamento; não existe garantia de que qualquer modelo responderá a qualquer solicitação. `/sim on` trata premissas inventadas como ficção.
+
+O crédito de mark.code refere-se ao aplicativo e à personalização Scarlett. Os modelos base pertencem aos respectivos autores. Esta beta não distribui pesos próprios treinados.
+
+`/run` executa no shell do sistema com suas permissões após você digitar `EXECUTAR`. Ele tem limite de 30 segundos e não é uma sandbox. O aplicativo não possui automação visual de mouse/teclado nem um agente autônomo de ferramentas. Saída de comandos não é enviada automaticamente ao modelo.
+
+## Configuração
+
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `SCARLETT_MODEL` | `scarlett:turbo`, com fallback para modelo instalado | Modelo inicial |
+| `OLLAMA_HOST` | `http://127.0.0.1:11434` | Apenas HTTP em loopback |
+| `SCARLETT_PYTHON` | `python3` no Linux; `python` no Windows | Python do ambiente de treinamento |
+| `SCARLETT_TRAIN_MODEL` | `Qwen/Qwen2.5-0.5B-Instruct` | Modelo base do LoRA |
+
+A inferência não tem dependências npm ou telemetria. Downloads, dependências de treinamento e comandos que você executar podem usar a rede. Conversas e datasets são texto simples: revise antes de compartilhar. Dados privados e pesos são ignorados pelo Git nos caminhos padrão.
+
+## Desenvolvimento
+
+Com Node.js e Python instalados:
 
 ```sh
 npm test
+python -m unittest discover -s training -p "test_*.py"
+npm run preview
 ```
 
-Os testes verificam streaming, mensagens de sessão, proteção contra escapes de terminal, execução de comandos, restrição ao host local, inicialização do backend, erros de conexão e navegação do menu. Backend e streaming usam simulações para funcionar sem serviço Ollama ou portas abertas. GitHub Actions está configurado para Linux e Windows; execução local no Linux não equivale a validação no Windows.
+No Linux, use `python3` se `python` não existir. A suíte cobre streaming, contexto, perfis, navegação, renderização, exportação e validação. CI está configurado para Linux e Windows; isso não equivale a um resultado de CI que ainda não foi observado.
 
-Para publicar se o repositório remoto ainda não existir, dentro desta pasta:
+O terminal e o benchmark foram implementados, mas a inferência real e o treinamento completo ainda não foram validados neste ambiente, que bloqueia sockets. Consulte [notas da versão](RELEASE_NOTES.md) e [como contribuir](CONTRIBUTING.md).
 
-```sh
-gh repo create Scarlett --private --source=. --remote=origin --push
-```
+---
 
-O comando cria um repositório privado na conta autenticada. A publicação exige conexão de rede com GitHub. Pesos, datasets privados e sessões não entram no Git por padrão.
+<div align="center">
+
+**Scarlett 1.1 Beta** · Criada por **mark.code**, um dev solo.
+
+Modelos locais. Um terminal que acompanha suas ideias.
+
+</div>
