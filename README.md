@@ -9,12 +9,12 @@ Scarlett é um aplicativo que utiliza pesos existentes através do Ollama. O rep
 Instale [Node.js 22 ou superior](https://nodejs.org/) e [Ollama](https://ollama.com/download) para seu sistema. Dentro desta pasta:
 
 ```sh
-ollama pull qwen2.5:3b
-ollama create scarlett -f Modelfile
 npm start
 ```
 
-Se não houver conexão com o serviço, abra outro terminal e execute `ollama serve`. O download inicial do modelo precisa de internet. Depois disso, a conversa usa somente o Ollama local. O aplicativo aceita apenas endereços de loopback e não contém telemetria. Instalação, downloads e comandos executados manualmente podem acessar a rede.
+Scarlett verifica a conexão e tenta iniciar `ollama serve` automaticamente. Na primeira execução, digite **`/setup`** dentro da Scarlett: isso baixa `qwen2.5:3b` e cria o modelo `scarlett`, mostrando progresso na barra de status. O download pode ocupar alguns GB e levar vários minutos. Esc cancela; `/setup` permite tentar novamente. Se já houver modelos instalados, você pode selecioná-los sem baixar outro.
+
+Se o serviço não puder iniciar, abra outro terminal e execute `ollama serve`; depois use `/connect` dentro da Scarlett. Não é necessário executar `ollama pull` antes de iniciar o servidor. O download inicial precisa de internet. Depois disso, a conversa usa somente o Ollama local. O aplicativo aceita apenas endereços de loopback e não contém telemetria. Instalação, downloads e comandos executados manualmente podem acessar a rede.
 
 Para testar só a interface sem baixar modelos:
 
@@ -29,6 +29,8 @@ Digite uma mensagem; nesse modo a resposta é uma demonstração identificada, n
 | Comando | Ação |
 | --- | --- |
 | `/models` | Listar modelos instalados |
+| `/setup` | Baixar modelo base e preparar Scarlett |
+| `/connect` | Iniciar Ollama se necessário e reconectar |
 | `/model nome` | Trocar modelo e iniciar conversa nova |
 | `/new` | Limpar histórico em memória |
 | `/save conversa.json` | Salvar mensagens, sem sobrescrever arquivo existente |
@@ -39,7 +41,9 @@ Digite uma mensagem; nesse modo a resposta é uma demonstração identificada, n
 | `/run comando` | Mostrar comando e solicitar confirmação |
 | `/quit` | Sair |
 
-Tab completa comandos. Esc interrompe geração; Ctrl+C sai. A conversa fica em memória até você usar `/save`. Arquivos de conversa são texto simples; evite publicar informações pessoais. Mensagens antigas ocupam contexto e podem ser truncadas pelo modelo; use `/new` para começar de novo.
+A interface ocupa a tela inteira, com cabeçalho, conversa rolável, entrada fixa e indicador de status. Digite `/` para abrir o menu: use setas ou Tab para escolher e Enter para executar. `/models` abre um seletor navegável. Comandos que recebem argumentos, como `/run`, preenchem a entrada para você completar. PgUp/PgDn percorrem a conversa, e setas recuperam mensagens anteriores quando o menu está fechado. Esc interrompe geração ou download; Ctrl+C sai e restaura o terminal.
+
+A conversa fica em memória até você usar `/save`. Arquivos de conversa são texto simples; evite publicar informações pessoais. As últimas 40 mensagens são enviadas ao modelo; o contexto também pode ser truncado por ele. Use `/new` para começar de novo.
 
 ## Controle do computador
 
@@ -87,7 +91,7 @@ Referências: [API de chat do Ollama](https://docs.ollama.com/api/chat), [import
 npm test
 ```
 
-Os testes verificam streaming, mensagens de sessão, proteção contra escapes de terminal, execução de comandos e restrição ao host local. GitHub Actions está configurado para Linux e Windows; execução local no Linux não equivale a validação no Windows.
+Os testes verificam streaming, mensagens de sessão, proteção contra escapes de terminal, execução de comandos, restrição ao host local, inicialização do backend, erros de conexão e navegação do menu. Backend e streaming usam simulações para funcionar sem serviço Ollama ou portas abertas. GitHub Actions está configurado para Linux e Windows; execução local no Linux não equivale a validação no Windows.
 
 Para publicar se o repositório remoto ainda não existir, dentro desta pasta:
 
