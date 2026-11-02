@@ -2,7 +2,7 @@ import readline from 'node:readline';
 import { clean } from './core.js';
 import { profileFor } from './profiles.js';
 
-const codes = { bg: '48;2;13;15;23', panel: '48;2;22;25;37', fg: '38;2;219;225;244', dim: '38;2;120;132;160', red: '38;2;255;111;155', cyan: '38;2;100;225;213', purple: '38;2;181;163;255', gold: '38;2;242;201;126' };
+const codes = { bg: '48;2;12;15;24', panel: '48;2;25;30;46', fg: '38;2;219;225;244', dim: '38;2;120;132;160', red: '38;2;255;111;155', cyan: '38;2;100;225;213', purple: '38;2;181;163;255', gold: '38;2;242;201;126' };
 export const strip = s => s.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '');
 const width = s => [...strip(s)].length;
 const cut = (s, n) => [...clean(s)].slice(0, Math.max(0, n)).join('');
@@ -15,7 +15,7 @@ export const COMMANDS = [
   ['/scan', 'Verificar malware na pasta pessoal'], ['/scan ', 'Verificar arquivo ou pasta específica'],
   ['/agent on', 'Agente com ferramentas e confirmações'], ['/agent off', 'Conversa sem ferramentas automáticas'],
   ['/cd ', 'Trocar pasta de trabalho'], ['/ls', 'Listar pasta atual'], ['/read ', 'Ler um arquivo de texto'],
-  ['/mkdir ', 'Criar pasta após confirmação'], ['/write ', 'Criar/editar arquivo com argumentos JSON'],
+  ['/mkdir ', 'Criar pasta imediatamente'], ['/write ', 'Criar/editar arquivo com argumentos JSON'],
   ['/build ', 'Compilar C/C++ ou empacotar Python (JSON)'],
   ['/warmup', 'Carregar o modelo antes de conversar'], ['/stats', 'Ver métricas da última resposta'],
   ['/train', 'Abrir o guia de treinamento LoRA'], ['/train export ', 'Exportar conversa para dataset JSONL'],
@@ -47,7 +47,7 @@ export class TerminalUI {
   }
   start() {
     if (!this.tty) {
-      console.log('Scarlett 1.2 · criada por mark.code · dev solo\nAbra em um terminal interativo para a interface completa.');
+      console.log('Scarlett 1.3 · criada por mark.code · dev solo\nAbra em um terminal interativo para a interface completa.');
       this.rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
       this.rl.on('line', line => this.onSubmit(line));
       return;
@@ -87,6 +87,8 @@ export class TerminalUI {
     if (key.name === 'pageup') { this.scroll += 8; this.render(); return; }
     if (key.name === 'pagedown') { this.scroll = Math.max(0, this.scroll - 8); this.render(); return; }
     if (this.busy) return;
+    if (key.ctrl && key.name === 'k') { this.input = '/'; this.cursor = 1; this.selected = 0; this.render(); return; }
+    if (key.name === 'f1') return this.onSubmit('/help');
     const options = this.modal?.options || this.choices();
     if (options.length && ['up', 'down', 'tab'].includes(key.name)) {
       this.selected = (this.selected + (key.name === 'up' ? -1 : 1) + options.length) % options.length;
@@ -140,34 +142,43 @@ export class TerminalUI {
     const sidebar = w >= 116 && h >= 26, mainWidth = sidebar ? w - 29 : w, inner = mainWidth - 6;
     const rows = [], row = (s = '') => rows.push(s);
     const line = (s, tone = 'fg', size = w) => '  ' + paint(cut(s, size - 4), tone);
-    row(line('✦  S C A R L E T T   /   1.2', 'red'));
-    row(line(`LOCAL INTELLIGENCE  /  ${process.platform === 'win32' ? 'WINDOWS' : 'LINUX'}                       mark.code · dev solo`, 'dim'));
+    row(line('✦  S C A R L E T T   /   1.3                    LOCAL · PESSOAL · DIRETA', 'red'));
+    row(line(`${process.platform === 'win32' ? 'WINDOWS' : 'LINUX'}  /  ${this.workspace}  ·  mark.code`, 'dim'));
     row(line('─'.repeat(w - 4), 'dim'));
     const content = [], add = (s = '', tone = 'fg') => content.push(line(s, tone, mainWidth));
+    const centered = (s, tone = 'fg') => add(' '.repeat(Math.max(0, Math.floor((inner - [...s].length) / 2))) + s, tone);
     if (!this.items.length) {
       add('');
-      const logo = ['███████╗ ██████╗ █████╗ ██████╗ ██╗     ███████╗████████╗████████╗', '██╔════╝██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝╚══██╔══╝╚══██╔══╝', '███████╗██║     ███████║██████╔╝██║     █████╗     ██║      ██║', '╚════██║██║     ██╔══██║██╔══██╗██║     ██╔══╝     ██║      ██║', '███████║╚██████╗██║  ██║██║  ██║███████╗███████╗   ██║      ██║', '╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝      ╚═╝'];
-      if (mainWidth >= 76 && h >= 30) for (const l of logo) add(l, 'red'); else add('S C A R L E T T  ✦', 'red');
-      add(''); add(this.nickname ? `O que vamos construir, ${this.nickname}?` : 'Seu próximo projeto começa com uma conversa.', 'fg');
-      add('Código, terminal e ideias. No seu computador.', 'dim'); add('');
-      const boxWidth = Math.min(inner - 2, 66);
+      if (h >= 30) {
+        centered('·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·', 'dim');
+        centered('S C A R L E T T', 'red');
+        centered('───────  1 . 3  ───────', 'purple');
+      } else centered('S C A R L E T T  /  1.3', 'red');
+      add('');
+      centered(this.nickname ? `O que vamos criar, ${this.nickname}?` : 'Peça uma ideia. Crie alguma coisa.', 'fg');
+      centered('Menos etapas. Mais coisas prontas.', 'dim');
+      add('');
+      const boxWidth = Math.min(inner - 2, 68), margin = ' '.repeat(Math.max(0, Math.floor((inner - boxWidth) / 2)));
       const card = (title, detail, tone) => {
-        add('╭' + '─'.repeat(boxWidth - 2) + '╮', 'dim');
-        add('│ ' + cut(title, boxWidth - 4).padEnd(boxWidth - 4) + ' │', tone);
-        add('│ ' + cut(detail, boxWidth - 4).padEnd(boxWidth - 4) + ' │', 'dim');
-        add('╰' + '─'.repeat(boxWidth - 2) + '╯', 'dim');
+        add(margin + '╭' + '─'.repeat(boxWidth - 2) + '╮', 'dim');
+        add(margin + '│ ' + cut(title, boxWidth - 4).padEnd(boxWidth - 4) + ' │', tone);
+        add(margin + '│ ' + cut(detail, boxWidth - 4).padEnd(boxWidth - 4) + ' │', 'dim');
+        add(margin + '╰' + '─'.repeat(boxWidth - 2) + '╯', 'dim');
       };
-      if (h >= 35) {
-        card('01  CONVERSE  /models', 'Escolha o modelo que combina com sua máquina.', 'cyan');
-        card('02  CRIE  /run', 'Do código à execução, com sua confirmação.', 'purple');
-        card('03  PERSONALIZE  /train', 'Seus exemplos. Sua personalidade. Seu LoRA.', 'gold');
+      if (h >= 32) {
+        card('01  PEÇA E ESTÁ FEITO', 'Crie uma pasta chamada MeuProjeto na Área de Trabalho', 'cyan');
+        card('02  DO SEU JEITO', '/name Chefia   ·   /personality Direta, com exemplos', 'purple');
+        card('03  SUA INTELIGÊNCIA LOCAL', '/models escolher   ·   /train personalizar pesos', 'gold');
       } else {
-        add('/models  CONVERSE    /run  CRIE    /train  PERSONALIZE', 'cyan');
-        add('/setup prepara o modelo · /speed ajusta o desempenho', 'dim');
+        centered('Crie uma pasta chamada MeuProjeto', 'cyan');
+        centered('/models  ·  /personality  ·  /train', 'purple');
       }
+      add('');
+      centered('Ctrl+K abre comandos  ·  F1 mostra ajuda', 'dim');
     } else for (const item of this.items) {
-      add(''); add(`${item.role === 'Você' ? '›' : item.role === 'Scarlett' ? '✦' : '◆'} ${item.role.toUpperCase()}`, item.role === 'Scarlett' ? 'red' : item.role === 'Você' ? 'purple' : 'cyan');
+      add(''); add(`╭─ ${item.role === 'Você' ? '›' : item.role === 'Scarlett' ? '✦' : '◆'} ${item.role.toUpperCase()}`, item.role === 'Scarlett' ? 'red' : item.role === 'Você' ? 'purple' : 'cyan');
       for (const [text, tone] of this.messageLines(item, inner)) add(text, tone);
+      add('╰─', 'dim');
     }
     const options = this.modal?.options || this.choices(), showMenu = options.length > 0 && h >= 16;
     const menuHeight = showMenu ? Math.min(options.length, 6, h - 13) : 0;
@@ -176,12 +187,12 @@ export class TerminalUI {
     const bottom = Math.max(available, content.length - this.scroll);
     const visibleContent = content.slice(Math.max(0, bottom - available), bottom);
     const side = [
-      ['WORKSPACE', 'dim'], ['', 'dim'], ['◆ SCARLETT 1.2', 'red'], ['mark.code · dev solo', 'dim'], ['', 'dim'],
-      ['RUNTIME', 'dim'], [this.model, 'cyan'], [profileFor(this.speed).label, 'purple'], [this.agent ? 'AGENTE ATIVO' : 'MODO CONVERSA', 'gold'], [this.status, this.status === 'OFFLINE' ? 'red' : 'cyan'], ['', 'dim'],
-      ['ÚLTIMA RESPOSTA', 'dim'], [this.metrics ? `${this.metrics.tps.toFixed(1)} tok/s` : 'Aguardando conversa', 'fg'],
-      [this.metrics ? `Primeiro token ${this.metrics.first.toFixed(2)}s` : 'Sem benchmark fictício.', 'dim'], ['', 'dim'],
-      ['ATALHOS', 'dim'], ['/models  inteligência', 'fg'], ['/speed   desempenho', 'fg'], ['/warmup  pré-carregar', 'fg'], ['/train   treinar', 'fg'], ['', 'dim'],
-      [this.sim ? 'SIMULAÇÃO ATIVA' : 'LOCAL POR PADRÃO', 'gold'], ['Conversa em memória.', 'dim'], ['/save para guardar.', 'dim']
+      ['SEU ESPAÇO', 'dim'], ['', 'dim'], ['✦ SCARLETT 1.3', 'red'], [this.nickname || 'Do seu jeito.', 'fg'], ['mark.code · dev solo', 'dim'], ['', 'dim'],
+      ['MODELO LOCAL', 'dim'], [this.model, 'cyan'], [`${profileFor(this.speed).label} · ${this.agent ? 'AGENTE' : 'CHAT'}`, 'purple'], [this.status, this.status === 'OFFLINE' ? 'red' : 'cyan'], ['', 'dim'],
+      [this.lastAction?.title || 'AÇÕES DIRETAS', 'gold'], [this.lastAction?.detail ? cut(this.lastAction.detail, 25) : 'Pastas sem espera.', 'fg'], ['/mkdir ou pedido natural', 'dim'], ['', 'dim'],
+      ['PERSONALIZE', 'dim'], ['/name    seu apelido', 'fg'], ['/personality  seu estilo', 'fg'], ['/train   seus exemplos', 'fg'], ['', 'dim'],
+      ['DESEMPENHO', 'dim'], [this.metrics ? `${this.metrics.tps.toFixed(1)} tok/s` : 'Métricas após inferência.', 'cyan'], ['', 'dim'],
+      ['Ctrl+K  comandos', 'dim'], ['F1  ajuda', 'dim']
     ];
     for (let i = 0; i < available; i++) {
       let l = fit(visibleContent[i] || '', mainWidth);
@@ -193,7 +204,7 @@ export class TerminalUI {
       const offset = Math.max(0, this.selected - menuHeight + 1);
       for (let i = offset; i < Math.min(options.length, offset + menuHeight); i++) {
         const [name, desc] = options[i];
-        row(line(`${i === this.selected ? '❯' : ' '} ${name.padEnd(Math.min(23, Math.floor(w / 3)))}  ${desc}`, i === this.selected ? 'red' : 'dim'));
+        row((i === this.selected ? `\x1b[${codes.panel}m` : '') + line(`${i === this.selected ? '❯' : ' '} ${name.padEnd(Math.min(23, Math.floor(w / 3)))}  ${desc}`, i === this.selected ? 'red' : 'dim'));
       }
       row('');
     }
@@ -204,11 +215,11 @@ export class TerminalUI {
     const maxInput = w - 10, offset = Math.max(0, this.cursor - maxInput + 2);
     const visible = cut(this.input.slice(offset), maxInput - 1), caret = Math.max(0, this.cursor - offset);
     const editor = paint(visible.slice(0, caret)) + '\x1b[7m' + (visible[caret] || ' ') + '\x1b[27m' + paint(visible.slice(caret + 1));
-    const placeholder = cut(this.busy ? 'Aguarde… Esc para interromper' : 'O que vamos criar? Digite / para comandos', maxInput);
+    const placeholder = cut(this.busy ? 'Aguarde… Esc para interromper' : 'Crie uma pasta chamada Projeto…   / comandos', maxInput);
     const field = visible ? editor : paint(placeholder, 'dim');
     row('  ' + paint('│ ', 'dim') + paint('❯ ', 'red') + field + ' '.repeat(Math.max(0, w - 10 - (visible ? Math.max(visible.length, caret + 1) : placeholder.length))) + paint(' │', 'dim'));
     row(line('╰' + '─'.repeat(Math.max(0, w - 6)) + '╯', 'dim'));
-    row(line('Enter enviar   / comandos   PgUp/PgDn histórico   Esc parar   Ctrl+C sair', 'dim'));
+    row(line('Enter enviar   Ctrl+K comandos   F1 ajuda   PgUp/PgDn histórico   Esc parar', 'dim'));
     const screen = rows.slice(0, h);
     while (screen.length < h) screen.push('');
     const size = `${w}x${h}`, resized = this.lastSize !== size;

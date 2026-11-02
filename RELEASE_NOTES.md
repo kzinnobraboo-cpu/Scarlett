@@ -1,29 +1,29 @@
-# Scarlett 1.2 Beta
+# Scarlett 1.3 Beta
 
 Criada por **mark.code, um dev solo**.
 
-Correção beta.2: pedidos de verificação de vírus no próprio computador agora abrem um fluxo nativo de antivírus, sem depender do modelo. Use `/scan` ou `/scan CAMINHO`. A execução exige confirmação e pede detecção sem remoção/quarentena. ClamAV deve estar instalado e atualizado; no Windows há detecção do Defender. “Agora” no final de um pedido de apelido não é mais incluído no nome.
+## Peça a pasta e pronto
 
-## Agente com ferramentas reais
+“Crie uma pasta chamada MeuProjeto na Área de Trabalho” agora cria a pasta diretamente, sem modelo e sem confirmação. Nome e destino podem aparecer em ordens diferentes. Se faltar o nome, Scarlett pergunta e você responde apenas o nome. `/mkdir` e a criação de pastas dentro do agente também são diretas. Pastas existentes e arquivos são preservados.
 
-Scarlett pode listar e ler arquivos, propor pastas, criar/editar texto, executar comandos e compilar programas. O modelo recebe os resultados e pode continuar a tarefa. Alterações, comandos e builds aguardam confirmação por `EXECUTAR`; Esc interrompe. O agente vem ativo e exige um modelo com suporte a ferramentas nativas do Ollama.
+O local da Área de Trabalho, Downloads e Documentos respeita XDG no Linux quando configurado. O destino padrão é a pasta de trabalho mostrada no cabeçalho. O acesso continua limitado às permissões do usuário.
 
-Atalhos `/cd`, `/ls`, `/read`, `/mkdir`, `/write` e `/build` funcionam sem inferência. Acesso usa as permissões do usuário, inclusive caminhos fora do projeto; não concede administrador.
+## Menos espera, nova interface
 
-## Personalização persistente
+Scarlett abre sem aguardar Ollama; o modelo conecta quando necessário. A nova tela inicial mostra exemplos de pedidos, atalhos de personalização, última ação e conversa em cartões. Ctrl+K abre comandos e F1 mostra ajuda.
 
-Diga “me chame de chefia” ou use `/name Chefia`. Scarlett salva o apelido e o utiliza nas próximas conversas. `/personality` mostra ou altera o estilo; `/name reset` e `/personality reset` restauram as opções. Preferências são guardadas fora do repositório por padrão. O criador continua sendo mark.code.
+## Personalidade e recursos
 
-## Builds e treinamento
+Instruções mais diretas para tarefas legítimas, sem prometer alterar todos os comportamentos dos pesos. Apelido persistente, estilo personalizado, `/train`, `/scan`, perfis de desempenho e ferramentas de arquivos/builds continuam disponíveis. Gravação de arquivos, comandos, builds, treinamento e varreduras mantêm prévia e confirmação.
 
-Builds diretos suportam C/C++ com GCC/G++ e Python com PyInstaller instalado. `.exe` de C/C++ no Linux exige MinGW; `.exe` Python exige build no Windows. Os perfis de desempenho, `/warmup` e Training Studio (`/train`) continuam disponíveis. Preferências não substituem treinamento de pesos.
+## Publicar
 
-## GitHub público
+```sh
+npm run publish:beta -- --public
+```
 
-`npm run publish:beta -- --public` publica branch e tag, cria/atualiza a prerelease e cria um repositório público ou torna público o origin existente. README, capa, prévia e guias acompanham o código. O script exige GitHub CLI autenticado e rede; não força o histórico Git.
+O comando envia a versão e publica uma prerelease, criando o repositório público ou tornando público o origin existente. Exige GitHub CLI autenticado, rede e árvore Git limpa; não força histórico.
 
-## Validação e limites
+## Validação
 
-41 testes JavaScript e 6 testes Python passaram no Linux. Um programa C foi criado, compilado com GCC e executado pelo mecanismo de ferramentas. Planejamento com um modelo real, compilação para Windows e treinamento completo ainda não foram validados neste ambiente. O agente foi testado com respostas de modelo simuladas. Desempenho depende do hardware e dos pesos; não há garantia de ações instantâneas ou respostas irrestritas.
-
-O fluxo de antivírus foi testado com respostas de motor simuladas; nenhum antivírus real foi executado neste ambiente, onde ClamAV não está instalado. Uma varredura sem detecções não comprova ausência de malware.
+46 testes JavaScript e 6 testes Python passaram no Linux. Criação direta de pastas foi testada em disco, incluindo nomes com espaços, pasta existente, conflito com arquivo e destino XDG. O ciclo do agente continua testado com respostas de modelo simuladas. Inferência real e testes no Windows ainda precisam de validação; não são prometidas respostas instantâneas dos pesos.

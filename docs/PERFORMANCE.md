@@ -1,6 +1,6 @@
 # Medir desempenho
 
-A 1.2 oferece redução de trabalho de contexto, um modelo inicial menor e menos trabalho de renderização. São mudanças de implementação; não são prova de uma determinada velocidade no seu computador.
+A 1.3 oferece redução de trabalho de contexto, um modelo inicial menor e menos trabalho de renderização. São mudanças de implementação; não são prova de uma determinada velocidade no seu computador.
 
 ## Modelo e perfil são escolhas separadas
 
@@ -38,3 +38,7 @@ Referências: [API de chat](https://docs.ollama.com/api/chat), [API de geração
 ## Modo agente
 
 Ferramentas precisam de espaço para esquemas, argumentos e resultados. O agente solicita no mínimo 4096 tokens de contexto e 1536 de saída, inclusive com perfil Turbo. Cada etapa exige outra inferência; o tempo de confirmação é excluído da métrica total exibida ao final. O primeiro token exibido pode vir após ferramentas, e não mede o primeiro token interno de uma chamada. Para uma conversa simples e contexto menor, use `/agent off`. Os atalhos `/mkdir`, `/read`, `/write` e `/build` dispensam inferência para preparar a ação.
+
+## Abertura e pastas na 1.3
+
+O aplicativo não espera o Ollama na abertura. A conexão é feita ao usar o modelo ou `/connect`. Criação simples de pastas por frase natural ou `/mkdir` usa diretamente o filesystem, sem inferência ou shell. A latência mostrada é a duração dessa operação local, não uma métrica de velocidade dos pesos.

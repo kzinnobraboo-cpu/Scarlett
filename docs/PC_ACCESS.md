@@ -2,6 +2,16 @@
 
 O agente vem ativo e utiliza ferramentas reais nas pastas acessíveis ao usuário que iniciou Scarlett. Caminhos absolutos e `~` são aceitos. Não há elevação automática a administrador nem automação visual de mouse/teclado.
 
+## Pastas sem etapas extras
+
+```text
+crie uma pasta chamada MeuProjeto na Área de Trabalho
+crie uma pasta na área de trabalho chamada Teste
+cria uma pasta Meus Estudos nos Downloads
+```
+
+Esses pedidos não usam o modelo e não pedem confirmação. Sem local, o destino é a pasta de trabalho atual. Sem nome, Scarlett pergunta e aguarda só o nome; Esc cancela. Pastas existentes são preservadas. `/mkdir` e a ferramenta `make_directory` do agente também são diretos. A pasta exibida no resultado é o destino efetivo.
+
 ## Pedir em linguagem natural
 
 > Crie uma pasta MeuApp na minha Área de Trabalho, escreva main.c com um hello world e compile para Linux.
@@ -12,7 +22,7 @@ O ciclo retorna resultados ao modelo local, com limite de oito etapas e quatro c
 
 ## Confirmação
 
-Leitura e listagem são automáticas no agente. Criação de pasta, gravação, comandos e builds mostram uma prévia e aguardam `EXECUTAR`. Você pode percorrer a conversa com PgUp/PgDn para revisar. Esc cancela a ação pendente ou pede interrupção da execução em andamento. O agente não retoma sozinho uma ação recusada na interface.
+Leitura, listagem e criação de pastas são diretas. Gravação de arquivos, comandos e builds mostram uma prévia e aguardam `EXECUTAR`. Você pode percorrer a conversa com PgUp/PgDn para revisar. Esc cancela a ação pendente ou pede interrupção da execução em andamento. O agente não retoma sozinho uma ação recusada na interface.
 
 Ao substituir arquivo, a prévia mostra antes/depois. A gravação recusa alterações externas detectadas desde a prévia. Essa proteção não substitui controle de versão nem backup.
 
@@ -24,7 +34,7 @@ Ao substituir arquivo, a prévia mostra antes/depois. A gravação recusa altera
 /mkdir MeuApp
 ```
 
-Confirme a criação, depois:
+A pasta é criada imediatamente. Depois:
 
 ```text
 /write {"path":"MeuApp/main.c","content":"#include <stdio.h>\nint main(void) { puts(\"Ola, chefia!\"); return 0; }\n"}

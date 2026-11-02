@@ -59,7 +59,7 @@ test('build separa argumentos, exige toolchain e não finge .exe de Python no Li
   assert.throws(() => buildTask('app.c', 'native', 'app.c', 'linux'), /substituir/);
   assert.throws(() => buildTask('app.js', 'native', 'app', 'linux'), /suporta/);
 });
-test('agente pausa antes de cada alteração e envia resultados reais ao modelo', async () => fixture(async (dir, tools) => {
+test('agente cria pastas diretamente, confirma escrita e envia resultados reais ao modelo', async () => fixture(async (dir, tools) => {
   let requests = 0;
   const api = { async *chat(model, messages, signal, speed, schemas) {
     assert.equal(schemas, PC_TOOLS);
@@ -77,14 +77,15 @@ test('agente pausa antes de cada alteração e envia resultados reais ao modelo'
   while (!step.done) {
     if (step.value.type === 'approval') {
       approvals++;
-      assert.equal(await exists(join(dir, approvals === 1 ? 'app' : 'app/main.c')), false);
+      assert.equal(await exists(join(dir, 'app')), true);
+      assert.equal(await exists(join(dir, 'app/main.c')), false);
       step = await iterator.next(true);
     } else {
       if (step.value.type === 'token') answer += step.value.text;
       step = await iterator.next();
     }
   }
-  assert.equal(approvals, 2); assert.equal(requests, 4);
+  assert.equal(approvals, 1); assert.equal(requests, 4);
   assert.match(answer, /conferido/);
   assert.match(await readFile(join(dir, 'app/main.c'), 'utf8'), /int main/);
 }));

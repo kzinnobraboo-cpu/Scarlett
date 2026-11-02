@@ -248,3 +248,5 @@ test('agora no final do pedido não vira parte do apelido', () => {
   assert.equal(nicknameRequest('me chame de chefia agora'), 'chefia');
   assert.equal(nicknameRequest('a partir de agora me chame de chefia'), 'chefia');
 });
+
+await import('./folder-actions.test.js');

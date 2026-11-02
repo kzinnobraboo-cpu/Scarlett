@@ -2,7 +2,7 @@
 
 ## “Could not connect to ollama server”
 
-Abra Scarlett com `npm start`; ela tenta iniciar o serviço. Se falhar, abra outro terminal, execute `ollama serve` e deixe-o aberto. Volte à Scarlett e use `/connect`. Somente depois disso execute `/setup` para baixar o modelo.
+Abra Scarlett com `npm start`; ao conversar ou usar `/connect`, ela tenta iniciar o serviço. Se falhar, abra outro terminal, execute `ollama serve` e deixe-o aberto. Volte à Scarlett e use `/connect`. Somente depois disso execute `/setup` para baixar o modelo.
 
 ## “Operation not permitted” ou sockets bloqueados
 

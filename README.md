@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/assets/hero.svg" alt="Scarlett 1.2 — Seu terminal. Sua inteligência. Criada por mark.code." width="100%" />
+<img src="docs/assets/hero.svg" alt="Scarlett 1.3 — Seu terminal. Sua inteligência. Criada por mark.code." width="100%" />
 
 **Uma assistente local para conversar, programar e personalizar.**
 
-[![Versão](https://img.shields.io/badge/versão-1.2_beta-ff6f9b?style=flat-square)](RELEASE_NOTES.md)
+[![Versão](https://img.shields.io/badge/versão-1.3_beta-ff6f9b?style=flat-square)](RELEASE_NOTES.md)
 [![Node](https://img.shields.io/badge/Node.js-22%2B-64e1d5?style=flat-square)](https://nodejs.org/)
 [![Ollama](https://img.shields.io/badge/inferência-Ollama-b5a3ff?style=flat-square)](https://ollama.com/)
 [![Tests](https://github.com/kzinnobraboo-cpu/Scarlett/actions/workflows/test.yml/badge.svg)](https://github.com/kzinnobraboo-cpu/Scarlett/actions/workflows/test.yml)
@@ -19,7 +19,7 @@
 
 Criada por **mark.code, um dev solo**, Scarlett combina uma interface de terminal com modelos executados no seu computador. Você escolhe os pesos, ajusta o perfil de desempenho e personaliza a personalidade. Conversas ficam em memória até você decidir salvá-las.
 
-<img src="docs/assets/terminal.svg" alt="Interface real da Scarlett 1.2, gerada em modo demonstração, com painel lateral e atalhos" width="100%" />
+<img src="docs/assets/terminal.svg" alt="Interface real da Scarlett 1.3, gerada em modo demonstração, com painel lateral e atalhos" width="100%" />
 
 <p align="center"><sub>Prévia gerada pelo renderizador do aplicativo em modo demonstração. Não representa inferência ou benchmark.</sub></p>
 
@@ -27,15 +27,15 @@ Criada por **mark.code, um dev solo**, Scarlett combina uma interface de termina
 <tr><td width="33%"><strong>✦ Converse</strong><br>Streaming, seleção de modelos, contexto ajustável e métricas da resposta.</td><td width="33%"><strong>⌘ Crie</strong><br>Código para Linux e Windows, mods, depuração e comandos executados com sua confirmação.</td><td width="33%"><strong>◆ Personalize</strong><br>Exporte exemplos, valide datasets e inicie ajustes LoRA pelo terminal.</td></tr>
 </table>
 
-## O que chegou na 1.2
+## O que chegou na 1.3
 
-- **Agente com ferramentas reais**: lê arquivos, propõe alterações e usa resultados para continuar a tarefa.
-- **Acesso às pastas permitidas pelo seu usuário**, comandos e builds C/C++ ou Python, com confirmação antes de alterar o computador.
-- **Personalização persistente**: diga “me chame de chefia” ou use `/name` e `/personality`.
-- **Atalhos sem inferência** para criar pastas, gravar arquivos e rodar builds.
-- **Publicação pública em um comando**, com release beta e README visual.
+- **Pastas por linguagem natural, sem confirmação**: “crie uma pasta chamada MeuProjeto na Área de Trabalho”.
+- **Pergunta curta quando faltar o nome**: peça “crie uma pasta” e responda com o nome.
+- **Atalhos imediatos**, inclusive `/mkdir`; abertura sem esperar o modelo ou Ollama.
+- **Nova tela inicial e conversa em cartões**, com última ação, Ctrl+K para comandos e F1 para ajuda.
+- **Personalidade mais direta** para tarefas legítimas, com preferências, treinamento e agentes preservados.
 
-Os perfis Turbo/Equilibrado/Completo, Training Studio e benchmark continuam disponíveis.
+Criação de pastas também é direta dentro do agente. Gravação de arquivos, comandos, builds, treinamento e varreduras continuam com suas prévias e confirmações.
 
 ## Começar em dois passos
 
@@ -45,7 +45,7 @@ Instale [Node.js 22+](https://nodejs.org/) e [Ollama](https://ollama.com/downloa
 npm start
 ```
 
-Scarlett tenta iniciar o serviço Ollama automaticamente. Dentro dela, prepare o modelo:
+Scarlett abre imediatamente. Ao conversar ou usar `/connect`, ela tenta iniciar o serviço Ollama automaticamente; criação de pastas e atalhos locais não precisam aguardar o modelo. Dentro dela, prepare o modelo:
 
 ```text
 /setup
@@ -70,7 +70,7 @@ A demo identifica suas respostas como demonstração e não executa inferência.
 
 ## Seu terminal, seu fluxo
 
-Digite `/` e navegue com **↑ ↓**, **Tab** e **Enter**. **Esc** interrompe geração, download ou treinamento. **PgUp/PgDn** percorrem o histórico. **Ctrl+C** sai.
+Use **Ctrl+K** ou digite `/` e navegue com **↑ ↓**, **Tab** e **Enter**. **Esc** interrompe geração, download ou treinamento. **PgUp/PgDn** percorrem o histórico. **Ctrl+C** sai.
 
 | Comando | O que faz |
 | --- | --- |
@@ -80,7 +80,7 @@ Digite `/` e navegue com **↑ ↓**, **Tab** e **Enter**. **Esc** interrompe ge
 | `/agent on` · `/agent off` | Liga ou desliga ferramentas automáticas |
 | `/cd CAMINHO` | Troca a pasta de trabalho |
 | `/ls` · `/read CAMINHO` | Lista pastas e lê arquivos |
-| `/mkdir CAMINHO` | Propõe criar uma pasta |
+| `/mkdir CAMINHO` | Cria a pasta imediatamente, sem confirmação |
 | `/write JSON` · `/build JSON` | Propõe gravar arquivo ou compilar/empacotar um programa |
 | `/models` | Abre o seletor de modelos locais |
 | `/model NOME` | Seleciona um modelo e começa uma conversa nova |
@@ -106,6 +106,18 @@ Pedidos como “vasculhe meu PC para procurar vírus” abrem o fluxo nativo de 
 
 O modo pede detecção sem exclusão/quarentena. Erros e interrupções são apresentados como análise incompleta, nunca como prova de um computador limpo. [Como usar e preparar o antivírus →](docs/SCANNING.md)
 
+## Peça a pasta e pronto
+
+```text
+crie uma pasta chamada MeuProjeto na Área de Trabalho
+cria uma pasta chamada Meus Estudos nos Downloads
+crie uma pasta na área de trabalho chamada Teste
+```
+
+O aplicativo reconhece esses pedidos antes da inferência e cria a pasta com as permissões do usuário, sem rodar shell e sem pedir `EXECUTAR`. Se faltar o local, usa a pasta de trabalho mostrada no cabeçalho. Se faltar o nome, pergunta; responda só com o nome. `/mkdir MeuProjeto` também é direto.
+
+Pastas existentes e seus arquivos são preservados. Se o nome corresponder a um arquivo, a operação falha sem substituí-lo. O local da Área de Trabalho respeita a configuração XDG no Linux quando disponível. Pedidos compostos, como criar pasta e escrever código, seguem para o agente para não descartar o restante.
+
 ## Personalize sem esperar pelo modelo
 
 Diga dentro da Scarlett:
@@ -128,7 +140,7 @@ O modo agente vem ativo. Exemplo de pedido:
 
 > Crie uma pasta chamada MeuApp na minha Área de Trabalho, escreva um programa C que mostre “Olá, chefia” e compile para Linux.
 
-O modelo precisa suportar chamadas de ferramentas. Ele pode ler/listar, propor arquivos e builds, receber resultados e continuar. **Antes de cada alteração ou comando, revise a prévia e digite `EXECUTAR`.** Esc cancela. A sessão tem limite de oito etapas e quatro chamadas por resposta.
+O modelo precisa suportar chamadas de ferramentas. Ele pode ler/listar, propor arquivos e builds, receber resultados e continuar. **Pastas são criadas diretamente. Para gravar arquivos, executar comandos ou compilar, revise a prévia e digite `EXECUTAR`.** Esc cancela. A sessão tem limite de oito etapas e quatro chamadas por resposta.
 
 Acesso usa suas permissões do sistema, inclusive caminhos fora da pasta do projeto; não concede administrador. Saídas e arquivos lidos por ferramentas do agente são enviados ao modelo **local** para continuar a tarefa. [Ferramentas e exemplos de `.exe` →](docs/PC_ACCESS.md)
 
@@ -214,7 +226,7 @@ Um programa C foi criado, compilado e executado pelo mecanismo de ferramentas no
 
 <div align="center">
 
-**Scarlett 1.2 Beta** · Criada por **mark.code**, um dev solo.
+**Scarlett 1.3 Beta** · Criada por **mark.code**, um dev solo.
 
 Modelos locais. Um terminal que acompanha suas ideias.
 

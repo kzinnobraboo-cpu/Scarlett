@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.3.0-beta.1 — Pastas sem burocracia
+
+- Criação de pastas por linguagem natural, sem inferência nem confirmação.
+- Nome em continuação curta quando o pedido vier incompleto.
+- `/mkdir` e `make_directory` do agente executam diretamente.
+- Resolução da Área de Trabalho, Downloads e Documentos com XDG no Linux.
+- Abertura imediata; conexão com modelo sob demanda.
+- Nova tela inicial, conversa em cartões, última ação, Ctrl+K e F1.
+
 ## 1.2.0-beta.2 — Verificação de malware
 
 - Pedidos defensivos de busca de vírus no próprio PC são tratados antes da inferência.

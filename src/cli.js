@@ -10,19 +10,22 @@ import { identityReply } from './identity.js';
 import { PcTools, toolDisplay } from './pc-tools.js';
 import { agentTurn, agentInstructions } from './agent.js';
 import { scanRequest, prepareScan, runScan } from './scanner.js';
+import { folderRequest, createFolder } from './folder-actions.js';
 import { PreferenceStore, DEFAULT_PREFERENCES, nicknameRequest, personalizationPrompt, addressedReply } from './preferences.js';
 
 const demo = process.argv.includes('--demo');
 const api = new Ollama();
 let model = process.env.SCARLETT_MODEL || 'scarlett:turbo';
-let messages = [], simulation = false, speed = 'turbo', agentMode = true, busy = false, controller, confirmation, connected = false, installed = [];
+let messages = [], simulation = false, speed = 'turbo', agentMode = true, busy = false, controller, confirmation, pendingFolder, connected = false, installed = [];
 const pc = new PcTools();
 const preferenceStore = new PreferenceStore();
 let preferences = { ...DEFAULT_PREFERENCES }, preferenceWarning;
 try { preferences = await preferenceStore.load(); } catch (error) { preferenceWarning = error.message; }
-const ui = new TerminalUI(submit, () => { controller?.abort(); cancelPending(); });
+const ui = new TerminalUI(submit, () => { controller?.abort(); if (pendingFolder) { pendingFolder = undefined; ui.notice = 'Criação cancelada.'; } cancelPending(); });
 ui.agent = agentMode; ui.workspace = process.cwd(); ui.nickname = preferences.nickname;
 ui.model = model;
+ui.status = demo ? 'DEMONSTRAÇÃO' : 'PRONTA';
+ui.notice = 'Pastas e atalhos prontos. O modelo conecta quando você precisar.';
 function status(value, notice = ui.notice) { ui.status = value; ui.notice = notice; ui.render(); }
 function stop() { controller?.abort(); confirmation?.state?.controller.abort(); ui.close(); process.exit(0); }
 process.on('SIGTERM', stop);
@@ -58,6 +61,21 @@ function cancelPending() {
   ui.notice = 'Execução cancelada.';
   ui.status = connected ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'OFFLINE';
 }
+async function quickFolder(request, userText) {
+  if (!request.name) {
+    pendingFolder = request;
+    ui.add('Scarlett', addressedReply('Qual nome você quer dar à pasta?', preferences));
+    ui.notice = 'Digite apenas o nome da pasta. Esc cancela.';
+    return;
+  }
+  const started = performance.now();
+  const result = await createFolder(request);
+  const answer = `${result.created ? 'Pasta criada' : 'Essa pasta já existe'}: ${result.path}`;
+  ui.add('Scarlett', addressedReply(answer, preferences));
+  messages.push({ role: 'user', content: userText }, { role: 'assistant', content: answer });
+  ui.lastAction = { title: result.created ? 'PASTA CRIADA' : 'PASTA EXISTENTE', detail: result.path };
+  ui.notice = `Concluído em ${(performance.now() - started).toFixed(0)} ms · sem inferência.`;
+}
 async function offerScan(path) {
   const plan = await prepareScan(path);
   if (!plan.available) {
@@ -71,7 +89,7 @@ async function offerScan(path) {
 }
 async function localTool(name, args) {
   const proposal = await pc.prepare(name, args);
-  if (proposal.mutates) {
+  if (proposal.requiresApproval ?? proposal.mutates) {
     confirmation = { type: 'pc', proposal };
     ui.add('Confirmar ação', `${proposal.preview}\n\nDigite EXECUTAR para aplicar. Esc cancela.`);
     status('AGUARDANDO', 'Revise a ação e confirme com EXECUTAR.');
@@ -161,7 +179,7 @@ async function command(line) {
     }
     case '/ls': await localTool('list_directory', { path: arg || '.' }); break;
     case '/read': await localTool('read_file', { path: arg }); break;
-    case '/mkdir': await localTool('make_directory', { path: arg }); break;
+    case '/mkdir': await quickFolder({ name: arg.replace(/^([\"'])(.*)\1$/, '$2'), location: 'cwd' }, line); break;
     case '/write':
       if (!arg) throw new Error('Uso: /write {"path":"arquivo.txt","content":"texto","overwrite":false}');
       await localTool('write_file', JSON.parse(arg)); break;
@@ -312,8 +330,16 @@ async function submit(raw) {
         item.text += `\nCódigo: ${result.code}${result.timedOut ? ' · tempo esgotado' : ''}`;
         status(connected ? 'ONLINE' : 'OFFLINE', result.aborted ? 'Comando interrompido.' : 'Comando finalizado.');
       } else ui.notice = 'Execução cancelada.';
-    } else if (line.startsWith('/')) await command(line);
+    } else if (line.startsWith('/')) { pendingFolder = undefined; await command(line); }
     else {
+      if (pendingFolder) {
+        const request = pendingFolder; pendingFolder = undefined;
+        ui.add('Você', line);
+        await quickFolder({ ...request, name: line }, `Crie uma pasta ${line} em ${request.location}.`);
+        return;
+      }
+      const folder = folderRequest(line);
+      if (folder) { ui.add('Você', line); await quickFolder(folder, line); return; }
       if (scanRequest(line)) { ui.add('Você', line); await offerScan(); return; }
       const nickname = nicknameRequest(line);
       if (nickname) {
@@ -386,4 +412,3 @@ async function submit(raw) {
 }
 ui.start();
 if (preferenceWarning) ui.add('Preferências', `Não consegui carregar suas preferências: ${preferenceWarning}. Use /name ou /personality para salvar uma configuração nova.`);
-await submit('/connect');
