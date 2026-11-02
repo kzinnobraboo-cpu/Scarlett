@@ -2,6 +2,8 @@
 
 Criada por **mark.code, um dev solo**.
 
+Correção beta.2: pedidos de verificação de vírus no próprio computador agora abrem um fluxo nativo de antivírus, sem depender do modelo. Use `/scan` ou `/scan CAMINHO`. A execução exige confirmação e pede detecção sem remoção/quarentena. ClamAV deve estar instalado e atualizado; no Windows há detecção do Defender. “Agora” no final de um pedido de apelido não é mais incluído no nome.
+
 ## Agente com ferramentas reais
 
 Scarlett pode listar e ler arquivos, propor pastas, criar/editar texto, executar comandos e compilar programas. O modelo recebe os resultados e pode continuar a tarefa. Alterações, comandos e builds aguardam confirmação por `EXECUTAR`; Esc interrompe. O agente vem ativo e exige um modelo com suporte a ferramentas nativas do Ollama.
@@ -22,4 +24,6 @@ Builds diretos suportam C/C++ com GCC/G++ e Python com PyInstaller instalado. `.
 
 ## Validação e limites
 
-35 testes JavaScript e 6 testes Python passaram no Linux. Um programa C foi criado, compilado com GCC e executado pelo mecanismo de ferramentas. Planejamento com um modelo real, compilação para Windows e treinamento completo ainda não foram validados neste ambiente. O agente foi testado com respostas de modelo simuladas. Desempenho depende do hardware e dos pesos; não há garantia de ações instantâneas ou respostas irrestritas.
+41 testes JavaScript e 6 testes Python passaram no Linux. Um programa C foi criado, compilado com GCC e executado pelo mecanismo de ferramentas. Planejamento com um modelo real, compilação para Windows e treinamento completo ainda não foram validados neste ambiente. O agente foi testado com respostas de modelo simuladas. Desempenho depende do hardware e dos pesos; não há garantia de ações instantâneas ou respostas irrestritas.
+
+O fluxo de antivírus foi testado com respostas de motor simuladas; nenhum antivírus real foi executado neste ambiente, onde ClamAV não está instalado. Uma varredura sem detecções não comprova ausência de malware.

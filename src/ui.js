@@ -12,6 +12,7 @@ export const COMMANDS = [
   ['/models', 'Escolher um modelo local'], ['/setup', 'Instalar Scarlett Turbo · 1.5B'],
   ['/setup balanced', 'Instalar Scarlett Equilibrada · 3B'], ['/speed', 'Escolher perfil de velocidade'],
   ['/name ', 'Escolher seu apelido e salvar'], ['/personality', 'Ver personalização salva'], ['/personality ', 'Definir estilo das respostas'],
+  ['/scan', 'Verificar malware na pasta pessoal'], ['/scan ', 'Verificar arquivo ou pasta específica'],
   ['/agent on', 'Agente com ferramentas e confirmações'], ['/agent off', 'Conversa sem ferramentas automáticas'],
   ['/cd ', 'Trocar pasta de trabalho'], ['/ls', 'Listar pasta atual'], ['/read ', 'Ler um arquivo de texto'],
   ['/mkdir ', 'Criar pasta após confirmação'], ['/write ', 'Criar/editar arquivo com argumentos JSON'],

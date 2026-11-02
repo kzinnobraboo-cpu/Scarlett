@@ -242,3 +242,9 @@ test('preferências rejeitam texto inválido antes de salvar', async () => {
     await assert.rejects(store.save({ instructions: 'x'.repeat(2001) }));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+await import('./scanner.test.js');
+test('agora no final do pedido não vira parte do apelido', () => {
+  assert.equal(nicknameRequest('me chame de chefia agora'), 'chefia');
+  assert.equal(nicknameRequest('a partir de agora me chame de chefia'), 'chefia');
+});

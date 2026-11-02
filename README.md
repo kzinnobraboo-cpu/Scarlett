@@ -74,6 +74,7 @@ Digite `/` e navegue com **↑ ↓**, **Tab** e **Enter**. **Esc** interrompe ge
 
 | Comando | O que faz |
 | --- | --- |
+| `/scan` · `/scan CAMINHO` | Oferece verificação local de malware, sem depender do modelo |
 | `/name APELIDO` | Salva como você quer ser chamado |
 | `/personality TEXTO` | Salva o estilo das próximas respostas |
 | `/agent on` · `/agent off` | Liga ou desliga ferramentas automáticas |
@@ -98,6 +99,12 @@ Digite `/` e navegue com **↑ ↓**, **Tab** e **Enter**. **Esc** interrompe ge
 | `/system` · `/help` · `/connect` | Personalidade, ajuda e reconexão |
 
 `/fast on` e `/fast off` continuam disponíveis como atalhos para Turbo e Completo.
+
+## Verifique arquivos suspeitos
+
+Pedidos como “vasculhe meu PC para procurar vírus” abrem o fluxo nativo de antivírus, sem depender de o modelo aceitar a tarefa. `/scan` usa a pasta pessoal por padrão; `/scan CAMINHO` define outro alvo. A prévia pede confirmação antes da varredura. ClamAV precisa estar instalado e ter assinaturas; no Windows, o aplicativo também procura Microsoft Defender.
+
+O modo pede detecção sem exclusão/quarentena. Erros e interrupções são apresentados como análise incompleta, nunca como prova de um computador limpo. [Como usar e preparar o antivírus →](docs/SCANNING.md)
 
 ## Personalize sem esperar pelo modelo
 

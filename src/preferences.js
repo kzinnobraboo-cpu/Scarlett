@@ -40,7 +40,7 @@ export function nicknameRequest(input) {
   const prefix = input.trim().slice(0, match.index).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/\b(?:a partir de agora|apartir de agora|a partir de agr|apartir de agr|de agora em diante|eu sou seu dono|sou seu dono|sou seu usuario|por favor|oi|ola|entao)\b/g, '').replace(/[\s,.:!]/g, '');
   if (prefix) return null;
-  const nickname = match[1].trim();
+  const nickname = match[1].trim().replace(/\s+(?:a partir de agora|de agora em diante|agora|agr)$/iu, '').trim();
   if (/\be\s+(?:fa[çc]a|crie|escreva|responda|seja|execute|abra|leia|gere|compile|delete|apague)\b/iu.test(nickname)) return null;
   try { return validatePreferences({ nickname }).nickname || null; } catch { return null; }
 }

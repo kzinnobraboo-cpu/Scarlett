@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.2.0-beta.2 — Verificação de malware
+
+- Pedidos defensivos de busca de vírus no próprio PC são tratados antes da inferência.
+- `/scan` e `/scan CAMINHO` com ClamAV ou Defender, confirmação e detecção sem solicitar remediação.
+- Relatórios distinguem ausência de detecções, infecção, erro e interrupção.
+- “Agora” no final do pedido de apelido não é salvo como parte do nome.
+
 ## 1.2.0-beta.1 — Agente e personalização
 
 - Ciclo de ferramentas nativas Ollama, resultados reais e confirmação antes de alterações.

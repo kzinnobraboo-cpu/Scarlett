@@ -9,6 +9,7 @@ import { exportExamples, trainingTask, runTraining } from './training.js';
 import { identityReply } from './identity.js';
 import { PcTools, toolDisplay } from './pc-tools.js';
 import { agentTurn, agentInstructions } from './agent.js';
+import { scanRequest, prepareScan, runScan } from './scanner.js';
 import { PreferenceStore, DEFAULT_PREFERENCES, nicknameRequest, personalizationPrompt, addressedReply } from './preferences.js';
 
 const demo = process.argv.includes('--demo');
@@ -56,6 +57,17 @@ function cancelPending() {
   confirmation = undefined;
   ui.notice = 'Execução cancelada.';
   ui.status = connected ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'OFFLINE';
+}
+async function offerScan(path) {
+  const plan = await prepareScan(path);
+  if (!plan.available) {
+    ui.add('Scarlett', addressedReply(plan.message, preferences));
+    ui.notice = 'Instale/ative um motor de antivírus e tente /scan novamente.';
+    return;
+  }
+  confirmation = { type: 'scan', plan };
+  ui.add('Confirmar verificação', `${plan.preview}\n\nDigite EXECUTAR para iniciar. Esc cancela.`);
+  status('AGUARDANDO', 'Revise o alvo da verificação e confirme com EXECUTAR.');
 }
 async function localTool(name, args) {
   const proposal = await pc.prepare(name, args);
@@ -135,6 +147,7 @@ async function command(line) {
       if (!arg) { ui.add('Personalidade', `Apelido: ${preferences.nickname || 'não definido'}\nEstilo: ${preferences.instructions || 'padrão'}\n\n/name Chefia\n/personality Responda de forma curta, em português.\n/personality reset\n\nPreferências são salvas neste computador. O estilo orienta o modelo; não treina pesos. O criador de Scarlett continua sendo mark.code.`); break; }
       preferences = await preferenceStore.save({ ...preferences, instructions: arg === 'reset' ? '' : arg });
       ui.add('Scarlett', 'Estilo salvo para as próximas conversas.'); break;
+    case '/scan': await offerScan(arg || undefined); break;
     case '/agent':
       if (!['on', 'off'].includes(arg)) throw new Error('Uso: /agent on|off');
       agentMode = arg === 'on'; ui.agent = agentMode;
@@ -263,6 +276,17 @@ async function submit(raw) {
         return;
       }
       confirmation = undefined;
+      if (pending.type === 'scan') {
+        if (line === 'EXECUTAR') {
+          controller = new AbortController();
+          const item = ui.add('Antivírus', `Motor: ${pending.plan.engine}\nAlvo: ${pending.plan.target}\n\n`);
+          status('VERIFICANDO', 'Varredura em andamento… pode demorar. Esc pede interrupção.');
+          const result = await runScan(pending.plan, { signal: controller.signal, onOutput: text => { item.text = (item.text + text).slice(-60000); ui.scheduleRender(); } });
+          item.text += '\n\n' + result.conclusion;
+          status(connected ? (demo ? 'DEMONSTRAÇÃO' : 'ONLINE') : 'OFFLINE', result.conclusion);
+        } else ui.notice = 'Verificação cancelada.';
+        return;
+      }
       if (pending.type === 'pc') {
         if (line === 'EXECUTAR') {
           controller = new AbortController();
@@ -290,6 +314,7 @@ async function submit(raw) {
       } else ui.notice = 'Execução cancelada.';
     } else if (line.startsWith('/')) await command(line);
     else {
+      if (scanRequest(line)) { ui.add('Você', line); await offerScan(); return; }
       const nickname = nicknameRequest(line);
       if (nickname) {
         preferences = await preferenceStore.save({ ...preferences, nickname }); ui.nickname = nickname;
