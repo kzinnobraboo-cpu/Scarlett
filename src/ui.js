@@ -109,7 +109,7 @@ export class TerminalUI {
     const rows = [];
     const row = (s = '') => rows.push(s);
     const line = (s, tone = 'fg') => '  ' + paint(cut(s, w - 4), tone);
-    row(line('✦  S C A R L E T T', 'red'));
+    row(line('✦  S C A R L E T T   /   BETA 1.0', 'red'));
     row(line(`LOCAL INTELLIGENCE  /  ${process.platform === 'win32' ? 'WINDOWS' : 'LINUX'}                      mark.code · dev solo`, 'dim'));
     row(line('─'.repeat(w - 4), 'dim'));
     const content = [];

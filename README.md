@@ -1,4 +1,8 @@
-# Scarlett ✦
+# Scarlett ✦ — Beta 1.0
+
+**Versão: 1.0.0-beta.1 · Criada por mark.code, um dev solo.**
+
+Primeira versão beta: interface de terminal em tela inteira, modelos locais via Ollama, preparação pelo comando `/setup` e execução de comandos com confirmação. Está em desenvolvimento; consulte as limitações e instruções abaixo.
 
 Assistente local de terminal criada por **mark.code, um dev solo**, para Linux e Windows. Interface escura com detalhes em vermelho, streaming, comandos com Tab, modelos locais e execução de comandos confirmada pelo usuário. O terminal não tem dependências npm.
 

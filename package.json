@@ -1,7 +1,7 @@
 {
   "name": "scarlett-local",
-  "version": "0.1.0",
-  "description": "Assistente local de terminal criada por mark.code",
+  "version": "1.0.0-beta.1",
+  "description": "Scarlett Beta 1.0 — assistente local de terminal criada por mark.code",
   "type": "module",
   "private": true,
   "bin": { "scarlett": "src/cli.js" },
