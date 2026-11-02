@@ -53,7 +53,9 @@ O comando usa as permissões do processo Scarlett e tem limite de 30 segundos. I
 
 ## Personalidade, respostas e desempenho
 
-O prompt identifica Scarlett como criação de mark.code. Modelos podem não seguir instruções perfeitamente: valide a identidade no modelo que escolher. A interface não aplica um filtro de palavras às respostas; o comportamento é determinado pelos pesos, pelo prompt e pelos dados de treinamento. Um prompt não garante comportamento irrestrito. `/sim on` aceita premissas como “a grama é azul” dentro de um cenário fictício, sem converter isso em fato real.
+O prompt identifica Scarlett como criação de mark.code e orienta respostas práticas, com código e instruções quando solicitado. Palavras como “cheat”, “hack” e “mod” não são motivo isolado de recusa; a personalidade inclui desenvolvimento de jogos, cheats locais, depuração e engenharia reversa. O dataset de exemplo inclui vida infinita em um jogo Godot. Isso é um exemplo de treinamento, não uma resposta fixa nem pesos treinados.
+
+Modelos podem não seguir instruções perfeitamente: valide a identidade e o comportamento no modelo que escolher. A interface não aplica um filtro de palavras às respostas; o comportamento é determinado pelos pesos, pelo prompt e pelos dados de treinamento. Um prompt não garante comportamento irrestrito. Reinicie a aplicação para carregar alterações no prompt; para atualizar também a personalidade persistida no modelo Ollama, execute `/setup` novamente. `/sim on` aceita premissas como “a grama é azul” dentro de um cenário fictício, sem converter isso em fato real.
 
 O preset usa `qwen2.5:3b` como ponto de partida configurável. Não foi feito benchmark neste computador. Para reduzir memória e latência, escolha um modelo menor já instalado com `/model nome` e mantenha `/fast on`. O Ollama mantém o modelo carregado por dez minutos após solicitações. A primeira resposta pode demorar por carregamento; GPU, RAM, contexto e quantização influenciam a velocidade. Streaming mostra os tokens conforme chegam, sem prometer respostas instantâneas. A interface mostra tok/s quando o backend fornece métricas.
 
@@ -69,7 +71,7 @@ Use preferencialmente um ambiente separado em Linux ou WSL2 com GPU compatível.
 
 1. Crie um ambiente Python compatível com PyTorch, TRL e PEFT; Python 3.11 é uma escolha conservadora.
 2. Instale as dependências de treinamento, separadas do terminal.
-3. Prepare conversas revisadas em JSONL, uma por linha, no formato de `training/example.jsonl`. Esse arquivo de quatro exemplos ilustra o formato e não é suficiente para ajuste útil. Crie um conjunto variado e mantenha avaliação separada, incluindo identidade, Linux, Windows, factualidade e simulações.
+3. Prepare conversas revisadas em JSONL, uma por linha, no formato de `training/example.jsonl`. Esse arquivo ilustra o formato e não é suficiente para ajuste útil. Crie um conjunto variado e mantenha avaliação separada, incluindo identidade, Linux, Windows, factualidade e simulações.
 
 ```sh
 python -m venv .venv
