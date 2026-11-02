@@ -1,0 +1,9 @@
+node_modules/
+.env
+sessions/
+training/output/
+training/data*.jsonl
+__pycache__/
+.venv/
+*.gguf
+*.safetensors

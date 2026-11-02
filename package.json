@@ -1,0 +1,11 @@
+{
+  "name": "scarlett-local",
+  "version": "0.1.0",
+  "description": "Assistente local de terminal criada por mark.code",
+  "type": "module",
+  "private": true,
+  "bin": { "scarlett": "src/cli.js" },
+  "scripts": { "start": "node src/cli.js", "demo": "node src/cli.js --demo", "test": "node test/core.test.js" },
+  "engines": { "node": ">=22" },
+  "author": "mark.code"
+}
